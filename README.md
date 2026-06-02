@@ -1,46 +1,93 @@
- # LawVoice
+# LawVoice (சட்டக்குரல்)
 
-English full-stack legal assistance web app.
+Tamil legal assistance web app with People and Lawyer accounts, PDF-backed AI answers, and lawyer recommendations.
 
-## Folders
+## Features
 
-- `frontend` - React responsive web app with voice input, speech output, guide pages, lawyer help, emergency help, history, profile, and admin screens.
-- `backend` - Java Spring Boot REST API with MySQL configuration and query history persistence.
+- **மக்கள் (People):** voice/text legal help, emergency numbers, lawyer directory, history
+- **வழக்கறிஞர் (Lawyer):** profile dashboard, client requests, Tamil UI
+- **Auth:** register + login for both roles (backend API)
+- **AI:** Sarvam AI when configured; PDF knowledge base via `LAWVOICE_PDF_PATH`
 
-## Run Frontend
+## Local development
 
-```powershell
-cd frontend
-npm.cmd install --strict-ssl=false
-npm.cmd run dev
-```
+### 1. Backend (port 8081)
 
-Open `http://localhost:6000`.
-
-## Run Backend
+Requires **Java 17** (JDK). Maven is **not** required — use the included script.
 
 ```powershell
 cd backend
-$env:MYSQL_USER="lawvoice_user"
-$env:MYSQL_PASSWORD="lawvoice_pass"
+$env:LAWVOICE_PDF_PATH="C:\Users\basra\Downloads\20240716890312078.pdf"
 $env:SARVAM_API_KEY="your_sarvam_api_key"
-$env:SARVAM_MODEL="sarvam-105b"
-mvn spring-boot:run
+.\run.ps1
 ```
 
-API base URL: `http://localhost:8081/api`
+Or double-click `backend\run.bat`.
 
-`SARVAM_API_KEY` enables Tamil AI answers on the சட்டக்குரல் page. If it is not set, the app falls back to local demo guidance.
+> If `mvn` is not recognized, use `.\run.ps1` instead of `mvn spring-boot:run`.  
+> The script downloads Maven once into `backend\.tools\` automatically.
 
-## MySQL Setup
+**Note:** You do **not** need `winget install Maven` — `.\run.ps1` downloads Maven automatically into `backend\.tools\`.
 
-Open MySQL as an admin or root user and run:
+### 2. Frontend (port 5173)
 
-```sql
-CREATE DATABASE IF NOT EXISTS lawvoice;
-CREATE USER IF NOT EXISTS 'lawvoice_user'@'localhost' IDENTIFIED BY 'lawvoice_pass';
-GRANT ALL PRIVILEGES ON lawvoice.* TO 'lawvoice_user'@'localhost';
-FLUSH PRIVILEGES;
+Uses Vite proxy to `/api` → backend (avoids CORS during dev).
+
+```powershell
+cd frontend
+.\run.ps1
 ```
 
-If you want to use `root`, replace `lawvoice_user` and `lawvoice_pass` with your real MySQL username and password. Do not use the placeholder text `your_password`.
+Or: `npm.cmd install --strict-ssl=false` then `npm.cmd run dev`
+
+Open **http://localhost:5173**
+
+If port 5173 is busy, Vite may use **5174** — CORS is configured for all `localhost` ports.
+
+### Demo accounts (pre-seeded)
+
+| Role | Email | Password |
+|------|-------|----------|
+| மக்கள் | people@lawvoice.com | people123 |
+| வழக்கறிஞர் | lawyer@lawvoice.com | lawyer123 |
+
+## Login page
+
+1. Choose **மக்கள்** or **வழக்கறிஞர்**
+2. Choose **பழைய பயனர்** (login) or **புதிய பயனர்** (register)
+3. Submit — connects to `POST /api/auth/login` or `POST /api/auth/register`
+
+## Deploy with Docker
+
+Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) **running**.
+
+```powershell
+cd c:\Users\basra\LawVoice
+copy .env.example .env
+# Edit .env with SARVAM_API_KEY and LAWVOICE_PDF_PATH if needed
+docker compose up --build
+```
+
+If you see `dockerDesktopLinuxEngine` pipe error, start **Docker Desktop** first, then retry.
+
+- Website: **http://localhost:8080**
+- API (direct): **http://localhost:8081/api**
+
+The frontend container proxies `/api` to the backend.
+
+## API
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/auth/register` | POST | New user (people/lawyer) |
+| `/api/auth/login` | POST | Login |
+| `/api/auth/me` | GET | Current user (Bearer token) |
+| `/api/legal/ask` | POST | AI legal answer |
+| `/api/lawyers` | GET | Lawyer list |
+| `/api/health` | GET | Health check |
+
+## Folders
+
+- `frontend` — React + Vite
+- `backend` — Spring Boot API
+- `docker-compose.yml` — production-style stack

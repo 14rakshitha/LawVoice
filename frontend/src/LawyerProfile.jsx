@@ -80,15 +80,24 @@ const LawyerProfile = () => {
         <section className="lawyerHero">
           <div>
             <span className="pill"><Scale size={16} /> வழக்கறிஞர் சுயவிவரம்</span>
-            <h1>{lawyer.name}</h1>
+            <div className="lawyerHeaderRow">
+              <div className="lawyerAvatar" aria-hidden="true">{(lawyer.name || 'LV').slice(0, 2).toUpperCase()}</div>
+              <div>
+                <h1>{lawyer.name}</h1>
+                <p className="lawyerHeadline">
+                  <span><BadgeCheck size={16} /> {lawyer.barId}</span>
+                  <span><MapPin size={16} /> {lawyer.city}, {lawyer.state}</span>
+                  <span><Star size={16} /> 4.9</span>
+                </p>
+              </div>
+            </div>
             <p>
               {lawyer.city}, {lawyer.state} இல் அடிப்படையாக {lawyer.category} வழக்கறிஞர். உங்கள் பொது சுயவிவரம், தனிப்பட்ட
               விவரங்கள், வழக்கு வரலாறு மற்றும் ஆலோசனை கோரிக்கைகளை ஒரே இடத்தில் வைத்திருக்கவும்.
             </p>
             <div className="lawyerBadges">
-              <span><BadgeCheck size={17} /> {lawyer.barId}</span>
               <span><MapPin size={17} /> {lawyer.district}</span>
-              <span><Star size={17} /> 4.9 மதிப்பீடு</span>
+              <span><BriefcaseBusiness size={17} /> {lawyer.experience}</span>
               <span><ShieldCheck size={17} /> சரிபார்க்கப்பட்ட டெமோ பட்டியல்</span>
             </div>
           </div>

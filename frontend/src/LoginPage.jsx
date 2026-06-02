@@ -1,77 +1,128 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BriefcaseBusiness, LockKeyhole, LogIn, Scale, ShieldCheck, UserRound } from 'lucide-react';
-import { credentials, defaultLawyerProfile, practiceAreas, readStoredLawyerProfile } from './demoData';
+import {
+  ArrowRight,
+  BriefcaseBusiness,
+  LockKeyhole,
+  LogIn,
+  Mic,
+  Scale,
+  ShieldCheck,
+  UserPlus,
+  UserRound
+} from 'lucide-react';
+import { authLogin, authRegister, saveSession } from './api';
+import { defaultLawyerProfile, practiceAreas } from './demoData';
 import './styles.css';
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const [role, setRole] = useState('people');
-  const [email, setEmail] = useState(credentials.people.email);
-  const [password, setPassword] = useState(credentials.people.password);
+  const [mode, setMode] = useState('register');
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [lawyer, setLawyer] = useState(readStoredLawyerProfile);
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    phone: '',
+    district: 'சென்னை',
+    barId: defaultLawyerProfile.barId,
+    category: defaultLawyerProfile.category,
+    city: defaultLawyerProfile.city,
+    experience: defaultLawyerProfile.experience
+  });
+
+  const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
 
   const switchRole = (nextRole) => {
     setRole(nextRole);
-    setEmail(credentials[nextRole].email);
-    setPassword(credentials[nextRole].password);
     setError('');
   };
 
-  const updateLawyer = (field, value) => {
-    setLawyer((current) => ({ ...current, [field]: value }));
-  };
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    const expected = credentials[role];
-
-    if (email.trim().toLowerCase() !== expected.email || password !== expected.password) {
-      setError(`${expected.label} இற்கு ${expected.email} / ${expected.password} பயன்படுத்தவும்.`);
-      return;
-    }
-
-    localStorage.setItem('lawvoice-session', JSON.stringify({ role, email: expected.email, loggedInAt: new Date().toISOString() }));
-
-    if (role === 'lawyer') {
-      const required = ['name', 'barId', 'phone', 'category', 'city', 'experience'];
-      const missing = required.some((field) => !String(lawyer[field] || '').trim());
-      if (missing) {
-        setError('வழக்கறிஞர் சுயவிவரத்தில் நுழைவதற்கு முன் தேவையான வழக்கறிஞர் விவரங்களை பூர்த்தி செய்யவும்.');
-        return;
-      }
-      localStorage.setItem('lawvoice-lawyer-profile', JSON.stringify({ ...defaultLawyerProfile, ...lawyer }));
+  const completeLogin = (authResponse) => {
+    saveSession(authResponse);
+    if (authResponse.user.role === 'lawyer') {
+      const profile = authResponse.user.lawyerProfile || {};
+      localStorage.setItem('lawvoice-lawyer-profile', JSON.stringify({
+        ...defaultLawyerProfile,
+        name: authResponse.user.name,
+        email: authResponse.user.email,
+        phone: authResponse.user.phone,
+        district: authResponse.user.district,
+        city: profile.city || defaultLawyerProfile.city,
+        barId: profile.barId || defaultLawyerProfile.barId,
+        category: profile.category || defaultLawyerProfile.category,
+        experience: profile.experience || defaultLawyerProfile.experience
+      }));
       navigate('/lawyer-profile');
       return;
     }
-
     navigate('/user-profile');
   };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      if (mode === 'register') {
+        const payload = {
+          role,
+          name: form.name.trim(),
+          email: form.email.trim(),
+          password: form.password,
+          phone: form.phone.trim(),
+          district: form.district.trim()
+        };
+        if (role === 'lawyer') {
+          payload.lawyerProfile = {
+            barId: form.barId.trim(),
+            category: form.category,
+            city: form.city.trim(),
+            experience: form.experience.trim()
+          };
+        }
+        const response = await authRegister(payload);
+        completeLogin(response);
+        return;
+      }
+
+      const response = await authLogin({
+        role,
+        email: form.email.trim(),
+        password: form.password
+      });
+      completeLogin(response);
+    } catch (err) {
+      setError(err.message || 'சேவை இணைப்பு தோல்வி. Backend ஓடுகிறதா என்பதை சரிபார்க்கவும்.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const roleLabel = role === 'people' ? 'மக்கள்' : 'வழக்கறிஞர்';
+  const isRegister = mode === 'register';
 
   return (
     <div className="login-page">
       <section className="loginHero authHero">
         <div className="loginCopy">
-          <span className="pill"><Scale size={16} /> LawVoice</span>
-          <h1>மக்களுக்கான சட்ட உதவி. வழக்கறிஞர்களுக்கான தெளிவான பணிப்பகம்.</h1>
+          <span className="pill"><Scale size={16} /> சட்டக்குரல்</span>
+          <h1>இந்திய அரசியலமைப்பு அடிப்படையில் தமிழ் சட்ட உதவி.</h1>
           <p>
-            வழக்கறிஞர்களைக் கண்டுபிடிக்கவும் மற்றும் ஆலோசனை கோரிக்கைகளை அனுப்பவும் ஒரு நபராக உள்நுழையவும். உங்கள் தொழில்முறை விவரங்களை, வழக்குச் சரிதை மற்றும் மக்களிடம் இருந்து கோரிக்கைகளைக் கண்ட வழக்கறிஞராக வெளியிடவும்.
+            முதலில் உங்கள் வகையைத் தேர்ந்தெடுத்து, பிறகு பழைய பயனர் உள்நுழைவு அல்லது புதிய பயனர் பதிவு செய்யுங்கள்.
+            மக்களுக்கு குரல் சட்ட உதவி, அரசியலமைப்பு ஆதாரம், வழக்கறிஞர் பரிந்துரை; வழக்கறிஞர்களுக்கு சுயவிவரம், கோரிக்கைகள், பயனர் தொடர்பு.
           </p>
           <div className="loginSignals">
-            <span><ShieldCheck size={17} /> சரிபார்க்கப்பட்ட டெமோ அணுகல்</span>
-            <span><UserRound size={17} /> மக்கள் ஆதரவு மேசை</span>
-            <span><BriefcaseBusiness size={17} /> வழக்கறிஞர் சுயவிவர பணிப்பகம்</span>
-          </div>
-          <div className="credentialBox">
-            <strong>டெமோ உள்நுழைவு சான்றுபत்திரங்கள்</strong>
-            <span>மக்கள்: {credentials.people.email} / {credentials.people.password}</span>
-            <span>வழக்கறிஞர்: {credentials.lawyer.email} / {credentials.lawyer.password}</span>
+            <span><Mic size={17} /> குரல் வழிகாட்டல்</span>
+            <span><ShieldCheck size={17} /> அரசியலமைப்பு ஆதாரம்</span>
+            <span><BriefcaseBusiness size={17} /> வழக்கறிஞர் பணிமுறை</span>
           </div>
         </div>
 
         <form className="rolePanel authPanel" onSubmit={handleSubmit}>
-          <div className="roleSwitch" aria-label="உள்நுழைவு பாத்திரத்தைத் தேர்ந்தெடுக்கவும்">
+          <div className="roleSwitch" aria-label="பயனர் வகை">
             <button type="button" className={role === 'people' ? 'active' : ''} onClick={() => switchRole('people')}>
               <UserRound size={18} /> மக்கள்
             </button>
@@ -80,44 +131,79 @@ const LoginPage = () => {
             </button>
           </div>
 
-          <div>
-            <span className="pill"><LockKeyhole size={16} /> {credentials[role].label}</span>
-            <h2>{role === 'people' ? 'மக்கள் உள்நுழைவு' : 'வழக்கறிஞர் உள்நுழைவு'}</h2>
+          <div className="roleSwitch authModeSwitch" aria-label="உள்நுழைவு அல்லது பதிவு">
+            <button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => { setMode('login'); setError(''); }}>
+              <LogIn size={18} /> பழைய பயனர்
+            </button>
+            <button type="button" className={mode === 'register' ? 'active' : ''} onClick={() => { setMode('register'); setError(''); }}>
+              <UserPlus size={18} /> புதிய பயனர்
+            </button>
           </div>
 
+          <div>
+            <span className="pill"><LockKeyhole size={16} /> {roleLabel}</span>
+            <h2>{isRegister ? `${roleLabel} பதிவு` : `${roleLabel} உள்நுழைவு`}</h2>
+            <p className="authHint">
+              {isRegister
+                ? 'புதிய கணக்கை உருவாக்கி உடனே தொடங்குங்கள்.'
+                : 'ஏற்கனவே பதிவு செய்த மின்னஞ்சல் மற்றும் கடவுச்சொல்லை பயன்படுத்துங்கள்.'}
+            </p>
+          </div>
+
+          {isRegister && (
+            <label>பெயர்
+              <input value={form.name} onChange={(e) => update('name', e.target.value)} required autoComplete="name" />
+            </label>
+          )}
+
           <label>மின்னஞ்சல்
-            <input value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
+            <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} required autoComplete="email" />
           </label>
           <label>கடவுச்சொல்
-            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
+            <input type="password" value={form.password} onChange={(e) => update('password', e.target.value)} required minLength={6} autoComplete={isRegister ? 'new-password' : 'current-password'} />
           </label>
 
-          {role === 'lawyer' && (
+          {isRegister && (
+            <>
+              <label>தொலைபேசி
+                <input value={form.phone} onChange={(e) => update('phone', e.target.value)} required autoComplete="tel" />
+              </label>
+              <label>மாவட்டம்
+                <input value={form.district} onChange={(e) => update('district', e.target.value)} required />
+              </label>
+            </>
+          )}
+
+          {isRegister && role === 'lawyer' && (
             <div className="lawyerOnboarding">
-              <h3>மக்களுக்குக் காட்டப்படும் தனிப்பட்ட விவரங்கள்</h3>
+              <h3>வழக்கறிஞர் தொழில்முறை விவரங்கள்</h3>
               <div className="formGrid compactFields">
-                <label>பெயர்<input value={lawyer.name} onChange={(event) => updateLawyer('name', event.target.value)} /></label>
-                <label>பார் பதிவு<input value={lawyer.barId} onChange={(event) => updateLawyer('barId', event.target.value)} /></label>
-                <label>தொலைபேசி<input value={lawyer.phone} onChange={(event) => updateLawyer('phone', event.target.value)} /></label>
-                <label>நகரம்<input value={lawyer.city} onChange={(event) => updateLawyer('city', event.target.value)} /></label>
+                <label>பார் பதிவு<input value={form.barId} onChange={(e) => update('barId', e.target.value)} required /></label>
+                <label>நகரம்<input value={form.city} onChange={(e) => update('city', e.target.value)} required /></label>
                 <label>நடைமுறை பகுதி
-                  <select value={lawyer.category} onChange={(event) => updateLawyer('category', event.target.value)}>
+                  <select value={form.category} onChange={(e) => update('category', e.target.value)}>
                     {practiceAreas.map((area) => <option key={area}>{area}</option>)}
                   </select>
                 </label>
-                <label>அভিজ்ঞতை<input value={lawyer.experience} onChange={(event) => updateLawyer('experience', event.target.value)} /></label>
-                <label className="wideField">மக்களுக்கு பார்க்கக்கூடிய வழக்கு வரலாறு
-                  <textarea
-                    value={(lawyer.caseHistory || []).join('\n')}
-                    onChange={(event) => updateLawyer('caseHistory', event.target.value.split('\n').filter(Boolean))}
-                  />
-                </label>
+                <label>அனுபவம்<input value={form.experience} onChange={(e) => update('experience', e.target.value)} required /></label>
               </div>
             </div>
           )}
 
           {error && <p className="notice errorNotice">{error}</p>}
-          <button className="primaryBtn" type="submit"><LogIn size={17} /> உள்நுழைக</button>
+
+          <button className="primaryBtn" type="submit" disabled={busy}>
+            {busy ? 'செயலாக்குகிறது...' : (
+              <>
+                {isRegister ? 'பதிவு செய்து தொடங்கு' : 'உள்நுழைக'}
+                <ArrowRight size={17} />
+              </>
+            )}
+          </button>
+
+          <p className="authFootnote">
+            டெமோ: மக்கள் <strong>people@lawvoice.com</strong> / <strong>people123</strong> · வழக்கறிஞர் <strong>lawyer@lawvoice.com</strong> / <strong>lawyer123</strong>
+          </p>
         </form>
       </section>
     </div>

@@ -160,6 +160,7 @@ export function buildTamilLegalAnswer(query = '') {
   return {
     ...answer,
     suggestedLawyers: getSuggestedLawyers(answer.category),
+    sources: [],
     disclaimer: 'இது பொதுவான சட்ட விழிப்புணர்வு வழிகாட்டல் மட்டுமே. உங்கள் வழக்கின் ஆவணங்கள் மற்றும் உள்ளூர் நடைமுறைக்கு ஏற்ப வழக்கறிஞரிடம் தனிப்பட்ட ஆலோசனை பெறுங்கள்.'
   };
 }

@@ -1,0 +1,22 @@
+services:
+  backend:
+    build: ./backend
+    container_name: lawvoice-backend
+    ports:
+      - "8081:8081"
+    environment:
+      PORT: 8081
+      FRONTEND_ORIGIN: http://localhost:8080
+      SARVAM_API_KEY: ${SARVAM_API_KEY:-}
+      SARVAM_MODEL: ${SARVAM_MODEL:-sarvam-105b}
+      LAWVOICE_PDF_PATH: ${LAWVOICE_PDF_PATH:-}
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: lawvoice-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

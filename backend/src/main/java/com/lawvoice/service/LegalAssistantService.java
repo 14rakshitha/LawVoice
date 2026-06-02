@@ -17,15 +17,18 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
 public class LegalAssistantService {
     private final QueryHistoryRepository historyRepository;
+    private final PdfKnowledgeService pdfKnowledgeService;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
     private final String sarvamApiKey;
@@ -34,10 +37,12 @@ public class LegalAssistantService {
 
     public LegalAssistantService(
             QueryHistoryRepository historyRepository,
+            PdfKnowledgeService pdfKnowledgeService,
             @Value("${SARVAM_API_KEY:${sarvam.api.key:}}") String sarvamApiKey,
             @Value("${SARVAM_MODEL:${sarvam.model:sarvam-105b}}") String sarvamModel
     ) {
         this.historyRepository = historyRepository;
+        this.pdfKnowledgeService = pdfKnowledgeService;
         this.sarvamApiKey = sarvamApiKey;
         this.sarvamModel = sarvamModel;
         this.httpClient = HttpClient.newBuilder()
@@ -52,20 +57,26 @@ public class LegalAssistantService {
         if (response == null) {
             response = localCaseAnswer(request.query(), sarvamCall.error());
         }
+        response = enrichWithLawyersAndSources(request.query(), response);
         saveHistory(request, response);
         return response;
     }
 
     public Map<String, Object> aiStatus() {
-        return Map.of(
-                "provider", "Sarvam AI",
-                "configured", true,
-                "sarvamConfigured", sarvamApiKey != null && !sarvamApiKey.isBlank(),
-                "model", sarvamModel,
-                "fallback", "Tamil local legal classifier",
-                "classifierVersion", "direct-v2",
-                "lastError", lastSarvamError == null ? "" : lastSarvamError
-        );
+        PdfKnowledgeService.PdfStatus pdfStatus = pdfKnowledgeService.status();
+        Map<String, Object> status = new java.util.LinkedHashMap<>();
+        status.put("provider", "Sarvam AI");
+        status.put("configured", true);
+        status.put("sarvamConfigured", sarvamApiKey != null && !sarvamApiKey.isBlank());
+        status.put("model", sarvamModel);
+        status.put("fallback", "Tamil local legal classifier");
+        status.put("classifierVersion", "direct-v2");
+        status.put("lastError", lastSarvamError == null ? "" : lastSarvamError);
+        status.put("pdfPath", pdfStatus.pdfPath());
+        status.put("pdfLoaded", pdfStatus.loaded());
+        status.put("pdfChunks", pdfStatus.chunks());
+        status.put("pdfError", pdfStatus.error());
+        return status;
     }
 
     private SarvamCall answerWithSarvam(AskRequest request) {
@@ -73,6 +84,12 @@ public class LegalAssistantService {
             lastSarvamError = "SARVAM_API_KEY is missing in backend environment.";
             return new SarvamCall(null, lastSarvamError);
         }
+
+        List<String> pdfSnippets = pdfKnowledgeService.retrieve(request.query(), 4);
+        String pdfContext = pdfSnippets.isEmpty()
+                ? ""
+                : ("REFERENCE TEXT (use as primary source; answer only with info consistent with it):\n\n"
+                + String.join("\n\n---\n\n", pdfSnippets));
 
         String systemPrompt = """
                 You are a Tamil-speaking Indian legal case assistant for LawVoice.
@@ -87,6 +104,7 @@ public class LegalAssistantService {
                 Required JSON shape:
                 {
                   "topic": "short Tamil title",
+                  "category": "one of: Criminal Law, Family Law, Consumer Law, Property Law, Cyber Crime, Labour Law, General",
                   "summary": "direct Tamil case analysis in 3-5 sentences, specific to the user's facts",
                   "steps": ["specific action step 1", "specific action step 2", "specific action step 3", "specific action step 4"],
                   "rights": ["specific right/protection relevant to this case", "another relevant right"],
@@ -101,7 +119,8 @@ public class LegalAssistantService {
                 "max_tokens", 1600,
                 "messages", List.of(
                         Map.of("role", "system", "content", systemPrompt),
-                        Map.of("role", "user", "content", "User legal question. Answer in Tamil only: " + request.query())
+                        Map.of("role", "user", "content", "User legal question (Tamil answer only): " + request.query()),
+                        Map.of("role", "user", "content", pdfContext)
                 )
         );
 
@@ -143,10 +162,13 @@ public class LegalAssistantService {
         Map<String, Object> value = objectMapper.readValue(json, new TypeReference<>() {});
         return new AskResponse(
                 stringValue(value.get("topic"), "சட்ட வழிகாட்டல்"),
+                normalizeCategory(stringValue(value.get("category"), "General")),
                 stringValue(value.get("summary"), "உங்கள் கேள்விக்கான சட்ட வழிகாட்டல் கீழே கொடுக்கப்பட்டுள்ளது."),
                 stringList(value.get("steps")),
                 stringList(value.get("rights")),
                 stringList(value.get("nextActions")),
+                List.of(),
+                List.of(),
                 stringValue(value.get("disclaimer"), "இது பொதுவான சட்ட விழிப்புணர்வு மட்டுமே; குறிப்பிட்ட வழக்குக்கு வழக்கறிஞரிடம் ஆலோசனை பெறுங்கள்.")
         );
     }
@@ -154,6 +176,7 @@ public class LegalAssistantService {
     private AskResponse aiUnavailableResponse(String reason) {
         return new AskResponse(
                 "Sarvam AI இணைக்கப்படவில்லை",
+                "General",
                 "வழக்கறிஞர் போல் கேள்விக்கேற்ப பதில் தர இந்த பக்கத்திற்கு Sarvam AI தேவை. இப்போது இணைப்பு தோல்வியடைந்தது. காரணம்: " + safeReason(reason),
                 List.of(
                         "Backend terminal-ல் SARVAM_API_KEY சரியாக set செய்யுங்கள்.",
@@ -163,6 +186,8 @@ public class LegalAssistantService {
                 ),
                 List.of("தவறான அல்லது generic சட்ட பதிலை நம்ப வேண்டாம்."),
                 List.of("Sarvam key அமைந்த பிறகு இந்த பக்கம் கேள்விக்கேற்ப தனிப்பட்ட செயல் திட்டம் தரும்."),
+                List.of(),
+                List.of(),
                 "AI சேவை இணைக்கப்படாததால் சட்ட வழிகாட்டல் உருவாக்கப்படவில்லை."
         );
     }
@@ -188,6 +213,7 @@ public class LegalAssistantService {
                 || hasAny(text, "சைபர்", "இணைய", "ஆன்லைன்", "மோசடி", "ஹேக்")) {
             response = new AskResponse(
                     "இணைய பண மோசடி / சைபர் புகார்",
+                    "Cyber Crime",
                     "உங்கள் கேள்வி இணையம் அல்லது பண மோசடி தொடர்பானதாக தெரிகிறது. இதில் நேரம் மிகவும் முக்கியம்; பணம் சென்றிருந்தால் முதலில் வங்கி/UPI சேவையிடம் பரிவர்த்தனையை முடக்க கோர வேண்டும். அதே நேரத்தில் 1930 உதவி எண் அல்லது cybercrime.gov.in வழியாக புகார் அளிக்க வேண்டும்.",
                     List.of(
                             "பரிவர்த்தனை எண், தேதி, நேரம், UPI ID/மொபைல் எண், வங்கி செய்தி, ஸ்கிரீன்ஷாட் ஆகியவற்றை அழிக்காமல் சேமியுங்கள்.",
@@ -204,6 +230,8 @@ public class LegalAssistantService {
                             "பணம் அதிகமாக இழந்திருந்தால் சைபர் குற்ற வழக்கறிஞர் அல்லது அருகிலுள்ள காவல் நிலையத்தை அணுகுங்கள்.",
                             "புகாரில் தொகை, நேரம், கணக்கு/UPI விவரம், சந்தேக நபர் விவரம் ஆகியவற்றை தெளிவாக எழுதுங்கள்."
                     ),
+                    List.of(),
+                    List.of(),
                     disclaimer(aiError)
             );
             return response;
@@ -212,6 +240,7 @@ public class LegalAssistantService {
                 || hasAny(text, "குடும்ப", "மனைவி", "கணவர்", "விவாகரத்து", "பராமரிப்பு", "குழந்தை காவல்", "181")) {
             response = new AskResponse(
                     "குடும்ப சட்டம் / பாதுகாப்பு",
+                    "Family Law",
                     "உங்கள் கேள்வி குடும்ப பிரச்சினை அல்லது பாதுகாப்பு தொடர்பானதாக தெரிகிறது. முதலில் உடனடி பாதுகாப்பு, பிறகு ஆதாரம், அதன் பிறகு உரிய சட்ட நிவாரணம் என்ற வரிசையில் செயல்படுவது நல்லது. வன்முறை அல்லது மிரட்டல் இருந்தால் 112 அல்லது பெண்கள் உதவி எண் 181-ஐ உடனே பயன்படுத்தலாம்.",
                     List.of(
                             "உடனடி ஆபத்து இருந்தால் பாதுகாப்பான இடத்துக்கு சென்று 112 அல்லது 181 அழைக்கவும்.",
@@ -228,6 +257,8 @@ public class LegalAssistantService {
                             "ஆவணங்கள் இருந்தால் குடும்ப நீதிமன்றம்/சட்ட உதவி மையம்/குடும்ப சட்ட வழக்கறிஞரை அணுகுங்கள்.",
                             "புகார் எழுதும்போது சம்பவ தேதி, இடம், சாட்சி, ஆதாரம் ஆகியவற்றை சேர்க்கவும்."
                     ),
+                    List.of(),
+                    List.of(),
                     disclaimer(aiError)
             );
             return response;
@@ -236,6 +267,7 @@ public class LegalAssistantService {
                 || hasAny(text, "நுகர்வோர்", "பணத்திருப்பு", "பொருள்", "வாரண்டி", "பில்")) {
             response = new AskResponse(
                     "நுகர்வோர் புகார் / பணத்திருப்பு",
+                    "Consumer Law",
                     "உங்கள் கேள்வி பொருள், சேவை, refund அல்லது warranty தொடர்பான நுகர்வோர் பிரச்சினையாக தெரிகிறது. முதலில் விற்பனையாளர் அல்லது சேவை வழங்குநருக்கு ஆதாரத்துடன் எழுத்துப்பூர்வ புகார் அனுப்ப வேண்டும். தீர்வு கிடைக்கவில்லை என்றால் 1915 அல்லது அதிகாரப்பூர்வ நுகர்வோர் புகார் தளத்தை பயன்படுத்தலாம்.",
                     List.of(
                             "பில், order number, payment receipt, warranty, chat/email பதிவு, பொருள் புகைப்படம் ஆகியவற்றை சேமியுங்கள்.",
@@ -252,6 +284,8 @@ public class LegalAssistantService {
                             "பதில் வராத காலவரையையும் புகார் எண்ணையும் பதிவு செய்து வையுங்கள்.",
                             "புகாரில் பில் எண், வாங்கிய தேதி, குறை, கோரிக்கை ஆகியவற்றை சேர்க்கவும்."
                     ),
+                    List.of(),
+                    List.of(),
                     disclaimer(aiError)
             );
             return response;
@@ -260,6 +294,7 @@ public class LegalAssistantService {
                 || hasAny(text, "வாடகை", "முன்பணம்", "நிலம்", "சொத்து", "பத்திரம்")) {
             response = new AskResponse(
                     "சொத்து / வாடகை / நில ஆவணம்",
+                    "Property Law",
                     "உங்கள் கேள்வி சொத்து, நிலம் அல்லது வாடகை தொடர்பானதாக தெரிகிறது. இவ்வகை பிரச்சினைகளில் ஒப்பந்தம், பண பரிவர்த்தனை ஆதாரம், உரிமை ஆவணம் ஆகியவை முக்கியம். வாய்மொழி பேச்சை மட்டும் நம்பாமல் எல்லா கோரிக்கைகளையும் எழுத்தில் பதிவு செய்யுங்கள்.",
                     List.of(
                             "வாடகை ஒப்பந்தம், ரசீது, வங்கி பரிவர்த்தனை, உரிமை ஆவணம், வரி ரசீது ஆகியவற்றை ஒரே கோப்பில் சேமியுங்கள்.",
@@ -277,6 +312,8 @@ public class LegalAssistantService {
                             "விவாதம் தொடர்ந்தால் சொத்து சட்ட வழக்கறிஞரை அணுகுங்கள்.",
                             "எழுத்துப்பூர்வ notice அனுப்பும் முன் ஒப்பந்த நிபந்தனைகளை சரிபார்க்கவும்."
                     ),
+                    List.of(),
+                    List.of(),
                     disclaimer(aiError)
             );
             return response;
@@ -285,6 +322,7 @@ public class LegalAssistantService {
                 || hasAny(text, "சம்பளம்", "வேலை", "நிறுவனம்", "பணி நீக்கம்")) {
             response = new AskResponse(
                     "வேலை / சம்பளம் / தொழிலாளர் உரிமை",
+                    "Labour Law",
                     "உங்கள் கேள்வி வேலை, சம்பளம் அல்லது பணி நீக்கம் தொடர்பானதாக தெரிகிறது. முதலில் நியமன ஆவணம், சம்பள ஆதாரம், மின்னஞ்சல்/செய்தி பதிவு ஆகியவற்றை சேகரிக்க வேண்டும். பிறகு HR/மேலாளரிடம் எழுத்துப்பூர்வ கோரிக்கை அனுப்பி, தீர்வு இல்லையெனில் தொழிலாளர் அலுவலகம் அல்லது வழக்கறிஞரை அணுகலாம்.",
                     List.of(
                             "நியமன கடிதம், சம்பளச் சீட்டு, வங்கி பதிவு, வருகை பதிவு, email/chat ஆதாரங்கள் சேமியுங்கள்.",
@@ -301,6 +339,8 @@ public class LegalAssistantService {
                             "அனுப்பிய தேதி, பதில், சம்பள ஆதாரம் ஆகியவற்றை பதிவு செய்யுங்கள்.",
                             "ஆவணங்கள் பலமாக இருந்தால் வழக்கறிஞர் மூலம் notice அனுப்பலாம்."
                     ),
+                    List.of(),
+                    List.of(),
                     disclaimer(aiError)
             );
             return response;
@@ -310,6 +350,7 @@ public class LegalAssistantService {
                 || hasAny(text, "எஃப்.ஐ.ஆர்", "காவல்", "போலீஸ்", "புகார்", "திருட", "கைப்பை", "சங்கிலி", "பறித்த", "மிரட்டல்", "தாக்குதல்")) {
             response = new AskResponse(
                     "காவல் புகார் / FIR வழிகாட்டல்",
+                    "Criminal Law",
                     "உங்கள் கேள்வி காவல் புகார் அல்லது FIR தொடர்பானதாக தெரிகிறது. குற்றம் நடந்ததாக நம்பத்தகுந்த தகவல் இருந்தால் காவல் நிலையத்தில் புகார் கொடுத்து CSR/FIR எண் கேட்க வேண்டும். காவல் நிலையம் பதிவு செய்ய மறுத்தால் மேலதிகாரிக்கு எழுத்துப்பூர்வமாக அதே புகாரை அனுப்புவது அடுத்த சரியான படி.",
                     List.of(
                             "சம்பவ தேதி, நேரம், இடம், நடந்த செயல், தொடர்புடைய நபர்கள், சாட்சிகள் ஆகியவற்றை நேர வரிசையில் எழுதுங்கள்.",
@@ -327,12 +368,15 @@ public class LegalAssistantService {
                             "உடனடி ஆபத்து இருந்தால் 112 அழைக்கவும்.",
                             "FIR மறுப்பு அல்லது கைது/ஜாமீன் பிரச்சினை இருந்தால் குற்றவியல் வழக்கறிஞரை அணுகுங்கள்."
                     ),
+                    List.of(),
+                    List.of(),
                     disclaimer(aiError)
             );
             return response;
         }
         response = new AskResponse(
                 "பொது சட்ட வழிகாட்டல்",
+                "General",
                 "உங்கள் கேள்விக்கு துல்லியமான பதில் தர சம்பவம் என்ன, எப்போது, எங்கு, யார் தொடர்புடையவர், என்ன ஆதாரம் உள்ளது என்பவை முக்கியம். முதலில் உண்மைகளை நேர வரிசையில் எழுதுவது பாதுகாப்பான முதல் படி. அதன்பின் பிரச்சினை காவல், குடும்பம், நுகர்வோர், சொத்து, சைபர் மோசடி அல்லது வேலை தொடர்பானதா என்பதைப் பொறுத்து அடுத்த அதிகாரியை அணுகலாம்.",
                 List.of(
                         "சம்பவத்தை தேதி/நேர வரிசையில் எழுதுங்கள்.",
@@ -348,6 +392,8 @@ public class LegalAssistantService {
                         "மேலும் துல்லியமான பதிலுக்கு உங்கள் பிரச்சினையை இரண்டு வாக்கியங்களில் தெளிவாக எழுதுங்கள்.",
                         "புகார் எழுதும்போது தேதி, இடம், நபர், ஆதாரம், கோரிக்கை ஆகியவற்றை சேர்க்கவும்."
                 ),
+                List.of(),
+                List.of(),
                 disclaimer(aiError)
         );
         return response;
@@ -372,10 +418,13 @@ public class LegalAssistantService {
     public AskResponse firResponse() {
         return new AskResponse(
                 "முதல் தகவல் அறிக்கை வழிகாட்டி",
+                "Criminal Law",
                 "குற்றம் தொடர்பான புகாருக்கு சம்பவ விவரம், ஆதாரம், சாட்சி விவரம் ஆகியவற்றுடன் காவல் நிலையத்தில் புகார் அளிக்க வேண்டும்.",
                 List.of("சம்பவத்தை நேர வரிசையில் எழுதுங்கள்.", "ஆதாரங்களை சேமியுங்கள்.", "CSR/FIR எண் கேளுங்கள்.", "மறுத்தால் SP/மேல் அதிகாரிக்கு எழுத்துப்பூர்வமாக அனுப்புங்கள்."),
                 List.of("புகார் அளிக்க உரிமை உள்ளது.", "பெறுபதிவு நகல் கேட்கலாம்."),
                 List.of("அவசரம் என்றால் 112 அழைக்கவும்.", "தேவைப்பட்டால் குற்றவியல் வழக்கறிஞரை அணுகுங்கள்."),
+                suggestLawyers("Criminal Law"),
+                List.of("PDF வழிகாட்டி: 20240716890312078.pdf"),
                 "இது பொதுவான வழிகாட்டல் மட்டுமே."
         );
     }
@@ -435,6 +484,49 @@ public class LegalAssistantService {
         history.setQueryText(request.query());
         history.setResponseText(response.summary());
         historyRepository.save(history);
+    }
+
+    private AskResponse enrichWithLawyersAndSources(String query, AskResponse base) {
+        String category = normalizeCategory(Optional.ofNullable(base.category()).orElse("General"));
+        List<LawyerItem> suggestions = suggestLawyers(category);
+        List<String> sources = new ArrayList<>();
+        List<String> pdfSnippets = pdfKnowledgeService.retrieve(query, 2);
+        if (!pdfSnippets.isEmpty()) {
+            sources.add("PDF வழிகாட்டி: 20240716890312078.pdf");
+        }
+        return new AskResponse(
+                base.topic(),
+                category,
+                base.summary(),
+                base.steps(),
+                base.rights(),
+                base.nextActions(),
+                suggestions,
+                sources,
+                base.disclaimer()
+        );
+    }
+
+    private List<LawyerItem> suggestLawyers(String category) {
+        List<LawyerItem> all = lawyers();
+        List<LawyerItem> filtered = all.stream()
+                .filter(item -> item.category() != null && item.category().equalsIgnoreCase(category))
+                .toList();
+        return (filtered.isEmpty() ? all : filtered).stream().limit(3).toList();
+    }
+
+    private String normalizeCategory(String raw) {
+        if (raw == null || raw.isBlank()) return "General";
+        String cleaned = raw.trim();
+        return switch (cleaned) {
+            case "Criminal", "Criminal law", "Criminal Law" -> "Criminal Law";
+            case "Family", "Family law", "Family Law" -> "Family Law";
+            case "Consumer", "Consumer law", "Consumer Law" -> "Consumer Law";
+            case "Property", "Property law", "Property Law" -> "Property Law";
+            case "Cyber", "Cyber crime", "Cyber Crime" -> "Cyber Crime";
+            case "Labour", "Labor", "Labour law", "Labour Law" -> "Labour Law";
+            default -> "General";
+        };
     }
 
     private record SarvamCall(AskResponse response, String error) {}

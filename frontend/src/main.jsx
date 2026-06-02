@@ -24,9 +24,8 @@ import LoginPage from './LoginPage';
 import LawyerProfile from './LawyerProfile';
 import PeopleLawyers from './PeopleLawyers';
 import { buildTamilLegalAnswer } from './tamilLegalAssistant';
+import { API } from './api';
 import './styles.css';
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8081/api';
 const USER_ID = 'lawvoice-demo-user';
 const USER_BASE = '/user-profile';
 
@@ -400,6 +399,11 @@ function AnswerCard({ answer, query = '' }) {
       </div>
       <h2>{answer.topic}</h2>
       <p>{answer.summary}</p>
+      {Array.isArray(answer.sources) && answer.sources.length > 0 && (
+        <p className="answerSources">
+          <strong>மூலம்:</strong> {answer.sources.join(' • ')}
+        </p>
+      )}
       <MiniList title="படிகள்" items={answer.steps} />
       <MiniList title="உரிமைகள்" items={answer.rights} />
       <MiniList title="அடுத்த உதவி" items={answer.nextActions} />
@@ -502,17 +506,68 @@ function Lawyers() {
 }
 
 function Emergency() {
-  const items = [['தேசிய அவசரம்', '112', 'உடனடி ஆபத்து அல்லது காவல் உதவி'], ['பெண்கள் உதவி எண்', '181', 'பெண்கள் பாதுகாப்பு மற்றும் ஆதரவு'], ['குழந்தை உதவி எண்', '1098', 'குழந்தை பாதுகாப்பு'], ['நுகர்வோர் உதவி எண்', '1915', 'பொருள் மற்றும் சேவை புகார்கள்']];
-  return <section className="screen"><div className="sectionHead"><div><span className="pill"><AlertTriangle size={16} /> உடனடி உதவி</span><h2>அவசர சட்ட உதவி எண்கள்</h2></div></div><div className="cardGrid emergency">{items.map((i) => <div className="card" key={i[1]}><h3>{i[0]}</h3><strong>{i[1]}</strong><p>{i[2]}</p><a className="dangerBtn" href={`tel:${i[1]}`}><Phone size={16} /> இப்போது அழை</a></div>)}</div></section>;
+  const [items, setItems] = useState([['தேசிய அவசரம்', '112', 'உடனடி ஆபத்து அல்லது காவல் உதவி'], ['பெண்கள் உதவி எண்', '181', 'பெண்கள் பாதுகாப்பு மற்றும் ஆதரவு'], ['குழந்தை உதவி எண்', '1098', 'குழந்தை பாதுகாப்பு'], ['நுகர்வோர் உதவி எண்', '1915', 'பொருள் மற்றும் சேவை புகார்கள்']]);
+  const [backendMessage, setBackendMessage] = useState('');
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch(`${API}/emergency`);
+        if (!res.ok) throw new Error('failed');
+        const data = await res.json();
+        const mapped = Array.isArray(data)
+          ? data.map((row) => [row.title || '', row.number || '', row.description || '']).filter((i) => i[0] && i[1])
+          : [];
+        if (!cancelled && mapped.length > 0) {
+          setItems(mapped);
+          setBackendMessage('');
+        }
+      } catch {
+        if (!cancelled) setBackendMessage('Backend அவசர பட்டியல் இப்போது கிடைக்கவில்லை. உள்ளூர் பட்டியல் காட்டப்படுகிறது.');
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  return <section className="screen"><div className="sectionHead"><div><span className="pill"><AlertTriangle size={16} /> உடனடி உதவி</span><h2>அவசர சட்ட உதவி எண்கள்</h2></div></div>{backendMessage && <p className="notice">{backendMessage}</p>}<div className="cardGrid emergency">{items.map((i) => <div className="card" key={i[1]}><h3>{i[0]}</h3><strong>{i[1]}</strong><p>{i[2]}</p><a className="dangerBtn" href={`tel:${i[1]}`}><Phone size={16} /> இப்போது அழை</a></div>)}</div></section>;
 }
 
 function HistoryPage() {
   const [rows, setRows] = useState(readHistory());
+  const [backendMessage, setBackendMessage] = useState('');
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch(`${API}/history/${USER_ID}`);
+        if (!res.ok) throw new Error('failed');
+        const data = await res.json();
+        const mapped = Array.isArray(data)
+          ? data.map((row) => ({
+            query: row.queryText || row.query || '',
+            answer: row.responseText || row.answer || ''
+          })).filter((r) => r.query && r.answer)
+          : [];
+        if (!cancelled && mapped.length > 0) {
+          setRows(mapped);
+          setBackendMessage('');
+        }
+      } catch {
+        if (!cancelled) setBackendMessage('Backend வரலாறு இப்போது கிடைக்கவில்லை. உள்ளூர் வரலாறு மட்டும் காட்டப்படுகிறது.');
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
   const clearHistory = () => {
     localStorage.removeItem('lawvoice-history');
     setRows([]);
   };
-  return <section className="screen"><div className="sectionHead"><div><span className="pill"><History size={16} /> சேமிக்கப்பட்டது</span><h2>கேள்வி வரலாறு</h2></div>{rows.length > 0 && <button className="secondaryBtn" onClick={clearHistory}>வரலாறு நீக்கு</button>}</div>{rows.length === 0 ? <div className="panel"><p>இன்னும் உள்ளூர் வரலாறு இல்லை. குரல் உதவி பக்கத்தில் கேள்வி கேளுங்கள்.</p></div> : <div className="stack">{rows.map((r, i) => <div className="panel" key={`${r.query}-${i}`}><h3>{r.query}</h3><p>{r.answer}</p></div>)}</div>}</section>;
+  return <section className="screen"><div className="sectionHead"><div><span className="pill"><History size={16} /> சேமிக்கப்பட்டது</span><h2>கேள்வி வரலாறு</h2></div>{rows.length > 0 && <button className="secondaryBtn" onClick={clearHistory}>வரலாறு நீக்கு</button>}</div>{backendMessage && <p className="notice">{backendMessage}</p>}{rows.length === 0 ? <div className="panel"><p>இன்னும் உள்ளூர் வரலாறு இல்லை. குரல் உதவி பக்கத்தில் கேள்வி கேளுங்கள்.</p></div> : <div className="stack">{rows.map((r, i) => <div className="panel" key={`${r.query}-${i}`}><h3>{r.query}</h3><p>{r.answer}</p></div>)}</div>}</section>;
 }
 
 function Profile() {
@@ -588,7 +643,9 @@ function normalizeAnswer(data, query = '') {
     steps: Array.isArray(data?.steps) ? data.steps : localAnswer.steps,
     rights: Array.isArray(data?.rights) ? data.rights : localAnswer.rights,
     nextActions: Array.isArray(data?.nextActions) ? data.nextActions : localAnswer.nextActions,
-    suggestedLawyers: localAnswer.suggestedLawyers,
+    category: data?.category || localAnswer.category,
+    suggestedLawyers: Array.isArray(data?.suggestedLawyers) && data.suggestedLawyers.length > 0 ? data.suggestedLawyers : localAnswer.suggestedLawyers,
+    sources: Array.isArray(data?.sources) ? data.sources : [],
     disclaimer: data?.disclaimer || localAnswer.disclaimer
   };
   const visibleText = [answer.topic, answer.summary, ...answer.steps, ...answer.rights, ...answer.nextActions, answer.disclaimer].join(' ');

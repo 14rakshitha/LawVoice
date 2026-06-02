@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MapPin, Phone, Search, Send, Star } from 'lucide-react';
+import { API } from './api';
 import { demoLawyers, readStoredLawyerProfile } from './demoData';
 import './styles.css';
 
@@ -8,7 +9,29 @@ const PeopleLawyers = () => {
   const [expanded, setExpanded] = useState('saved-lawyer');
   const [requestMessage, setRequestMessage] = useState('');
   const [requestForm, setRequestForm] = useState({ name: 'டெமோ ব்যবহারকারী', phone: '+91 98765 43210', issue: '' });
+  const [backendLawyers, setBackendLawyers] = useState([]);
+  const [backendError, setBackendError] = useState('');
   const savedLawyer = readStoredLawyerProfile();
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch(`${API}/lawyers`);
+        if (!res.ok) throw new Error('failed');
+        const data = await res.json();
+        if (!cancelled) {
+          setBackendLawyers(Array.isArray(data) ? data : []);
+          setBackendError('');
+        }
+      } catch {
+        if (!cancelled) setBackendError('Backend வழக்கறிஞர் பட்டியல் இப்போது கிடைக்கவில்லை. டெமோ பட்டியல் காட்டப்படுகிறது.');
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
   const lawyers = [
     {
       id: 'saved-lawyer',
@@ -24,8 +47,23 @@ const PeopleLawyers = () => {
       bio: savedLawyer.bio,
       pastCases: savedLawyer.caseHistory || []
     },
-    ...demoLawyers.filter((lawyer) => lawyer.name !== savedLawyer.name)
-  ];
+    ...(backendLawyers.length
+      ? backendLawyers.map((lawyer) => ({
+        id: lawyer.id,
+        name: lawyer.name,
+        category: lawyer.category,
+        city: lawyer.city,
+        phone: lawyer.phone,
+        rating: `${lawyer.rating ?? '4.8'}`,
+        experience: 'சேவை அனுபவம்',
+        barId: 'சரிபார்க்கப்பட்டது',
+        availability: 'அழைப்பிற்கு கிடைக்கும்',
+        short: 'இந்த வகை வழக்குகளுக்கு நடைமுறை வழிகாட்டல்.',
+        bio: 'உங்கள் வழக்கின் ஆவணங்கள் மற்றும் உண்மை விவரங்களை வைத்து, சரியான அடுத்த படிகளை திட்டமிட்டு வழிகாட்ட முடியும்.',
+        pastCases: []
+      }))
+      : demoLawyers.filter((lawyer) => lawyer.name !== savedLawyer.name))
+  ].filter((lawyer, index, all) => all.findIndex((item) => item.id === lawyer.id || item.name === lawyer.name) === index);
 
   const searchLocation = () => {
     if (!navigator.geolocation) {
@@ -78,6 +116,7 @@ const PeopleLawyers = () => {
       </div>
 
       {locationMessage && <p className="notice">{locationMessage}</p>}
+      {backendError && <p className="notice">{backendError}</p>}
       {requestMessage && <p className="notice">{requestMessage}</p>}
 
       <div className="lawyerDirectory">
