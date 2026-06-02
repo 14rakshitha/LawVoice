@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import com.lawvoice.repository.UserAccountRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +30,7 @@ import org.springframework.stereotype.Service;
 public class LegalAssistantService {
     private final QueryHistoryRepository historyRepository;
     private final PdfKnowledgeService pdfKnowledgeService;
+    private final UserAccountRepository userAccountRepository;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
     private final String sarvamApiKey;
@@ -38,11 +40,13 @@ public class LegalAssistantService {
     public LegalAssistantService(
             QueryHistoryRepository historyRepository,
             PdfKnowledgeService pdfKnowledgeService,
+            UserAccountRepository userAccountRepository,
             @Value("${SARVAM_API_KEY:${sarvam.api.key:}}") String sarvamApiKey,
             @Value("${SARVAM_MODEL:${sarvam.model:sarvam-105b}}") String sarvamModel
     ) {
         this.historyRepository = historyRepository;
         this.pdfKnowledgeService = pdfKnowledgeService;
+        this.userAccountRepository = userAccountRepository;
         this.sarvamApiKey = sarvamApiKey;
         this.sarvamModel = sarvamModel;
         this.httpClient = HttpClient.newBuilder()
@@ -438,20 +442,54 @@ public class LegalAssistantService {
     }
 
     public List<LawyerItem> lawyers() {
-        return List.of(
-                new LawyerItem("l1", "Adv. Priya Raman", "Criminal Law", "Chennai", "+91 90000 10001", 4.9, true),
-                new LawyerItem("l2", "Adv. Meena Raj", "Family Law", "Madurai", "+91 90000 10002", 4.8, true),
-                new LawyerItem("l3", "Adv. Prakash Vel", "Consumer Law", "Coimbatore", "+91 90000 10003", 4.7, true),
-                new LawyerItem("l4", "Adv. Latha Siva", "Property Law", "Trichy", "+91 90000 10004", 4.9, true)
-        );
+        List<LawyerItem> list = new ArrayList<>();
+        if (userAccountRepository != null) {
+            for (com.lawvoice.model.UserAccount u : userAccountRepository.findAll()) {
+                if ("lawyer".equalsIgnoreCase(u.getRole())) {
+                    Map<String, Object> profile = u.getLawyerProfile();
+                    String category = profile != null ? String.valueOf(profile.getOrDefault("category", "General")) : "General";
+                    String city = profile != null ? String.valueOf(profile.getOrDefault("city", u.getDistrict())) : u.getDistrict();
+                    String barId = profile != null ? String.valueOf(profile.getOrDefault("barId", "சரிபார்க்கப்பட்டது")) : "சரிபார்க்கப்பட்டது";
+                    String exp = profile != null ? String.valueOf(profile.getOrDefault("experience", "9 ஆண்டுகள்")) : "9 ஆண்டுகள்";
+                    String bio = profile != null ? String.valueOf(profile.getOrDefault("bio", "உங்கள் வழக்கின் ஆவணங்கள் மற்றும் உண்மை விவரங்களை வைத்து, சரியான அடுத்த படிகளை திட்டமிட்டு வழிகாட்ட முடியும்.")) : "உங்கள் வழக்கின் ஆவணங்கள் மற்றும் உண்மை விவரங்களை வைத்து, சரியான அடுத்த படிகளை திட்டமிட்டு வழிகாட்ட முடியும்.";
+                    
+                    list.add(new LawyerItem(
+                            "u" + u.getId(),
+                            u.getName(),
+                            category,
+                            city,
+                            u.getPhone(),
+                            4.9,
+                            true,
+                            exp,
+                            barId,
+                            bio
+                    ));
+                }
+            }
+        }
+        
+        if (list.isEmpty()) {
+            return List.of(
+                    new LawyerItem("l1", "Adv. Priya Raman", "Criminal Law", "Chennai", "+91 90000 10001", 4.9, true, "9 ஆண்டுகள்", "TN/2145/2016", "FIR மறுப்பு, கைது உரிமைகள், பெண் பாதுகாப்பு, நுகர்வோர் புகார்கள் மற்றும் அவசர காவல் நிலைய ஆதரவ உபர் கவனம் செலுத்துகிறது."),
+                    new LawyerItem("l2", "Adv. Meena Raj", "Family Law", "Madurai", "+91 90000 10002", 4.8, true, "11 ஆண்டுகள்", "TN/1882/2013", "பாதுகாப்பு திட்டமிடல், பாதுகாப்பு உத்தரவுகள், பராமரிப்பு கோரிக்கைகள், மத்தியஸ்தம் தயாரிப்பு மற்றும் குழந்தை நல ஆவணங்கள் மற்றும் குடும்பங்களைக் கூட்டுகிறது."),
+                    new LawyerItem("l3", "Adv. Prakash Vel", "Consumer Law", "Coimbatore", "+91 90000 10003", 4.7, true, "7 ஆண்டுகள்", "TN/3310/2018", "நுகர்வோர்களுக்கு ஆவணங்கள், உத்தரவாதம் சான்று, சேவை ஆவணங்கள் மற்றும் விற்பனையாளரின் செய்திகளை சேகரிக்க உதவுகிறது."),
+                    new LawyerItem("l4", "Adv. Latha Siva", "Property Law", "Trichy", "+91 90000 10004", 4.9, true, "13 ஆண்டுகள்", "TN/0924/2011", "நிலப்பதிவு ஆவணங்கள், குத்தகை ஒப்பந்தங்கள், சொத்து நோட்டீஸ்கள், எல்லை ஆவணங்கள் மற்றும் குத்தகை உரிமையாளர் சர்ச்சை ஆதாரங்களை மதிப்பாய்வு செய்கிறது.")
+            );
+        }
+        return list;
     }
 
     public List<EmergencyItem> emergency() {
         return List.of(
-                new EmergencyItem("தேசிய அவசரம்", "112", "உடனடி ஆபத்து அல்லது காவல் உதவி"),
-                new EmergencyItem("பெண்கள் உதவி", "181", "பெண்கள் பாதுகாப்பு மற்றும் ஆதரவு"),
-                new EmergencyItem("சைபர் நிதி மோசடி", "1930", "ஆன்லைன் பண மோசடி புகார்"),
-                new EmergencyItem("நுகர்வோர் உதவி", "1915", "பொருள் மற்றும் சேவை புகார்கள்")
+                new EmergencyItem("தேசிய அவசரம் (National Emergency)", "112", "அனைத்து அவசர தேவைகள் மற்றும் காவல் உதவிக்காக"),
+                new EmergencyItem("பெண்கள் உதவி (Women Helpline)", "181", "பெண்கள் பாதுகாப்பு, வன்முறை மற்றும் உடனடி ஆதரவுக்காக"),
+                new EmergencyItem("இலவச சட்ட உதவி (Free Legal Aid - NALSA)", "15100", "சட்ட சேவை ஆணையத்தின் இலவச சட்ட உதவி மற்றும் ஆலோசனைகளுக்காக"),
+                new EmergencyItem("சைபர் நிதி மோசடி (Cyber Financial Fraud)", "1930", "ஆன்லைன் வங்கி அல்லது UPI பண மோசடி புகார்களைப் பதிவு செய்ய"),
+                new EmergencyItem("நுகர்வோர் உதவி (National Consumer Helpline)", "1915", "நுகர்வோர் பொருள் மற்றும் சேவை தொடர்பான புகார்களைப் பதிவு செய்ய"),
+                new EmergencyItem("குழந்தை உதவி (Child Helpline)", "1098", "குழந்தை பாதுகாப்பு, ஆதரவு மற்றும் கடத்தல் தடுப்புக்காக"),
+                new EmergencyItem("மூத்த குடிமக்கள் உதவி (Senior Citizen Helpline)", "14567", "மூத்த குடிமக்களின் பாதுகாப்பு, பராமரிப்பு மற்றும் உதவிக்காக"),
+                new EmergencyItem("மாநில அவசர கட்டுப்பாடு (State Emergency)", "1070", "பேரிடர் மற்றும் இயற்கை பேரிடர் கால கட்டுப்பாட்டு அறைக்காக")
         );
     }
 

@@ -17,7 +17,7 @@ Requires **Java 17** (JDK). Maven is **not** required — use the included scrip
 
 ```powershell
 cd backend
-$env:LAWVOICE_PDF_PATH="C:\Users\basra\Downloads\20240716890312078.pdf"
+$env:LAWVOICE_PDF_PATH="C:\Users\praji\Downloads\20240716890312078.pdf"
 $env:SARVAM_API_KEY="your_sarvam_api_key"
 .\run.ps1
 ```
@@ -62,7 +62,7 @@ If port 5173 is busy, Vite may use **5174** — CORS is configured for all `loca
 Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) **running**.
 
 ```powershell
-cd c:\Users\basra\LawVoice
+cd c:\Users\praji\OneDrive\Desktop\COURSES\Rak\Lawvoice\LawVoice
 copy .env.example .env
 # Edit .env with SARVAM_API_KEY and LAWVOICE_PDF_PATH if needed
 docker compose up --build

@@ -453,16 +453,211 @@ function FirPage() {
 }
 
 function Knowledge() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeCategory, setActiveCategory] = useState('All');
+
+  // Categories list
+  const categories = ['All', ...pageGroups.map(g => g.title)];
+
+  // Filtered pages logic
+  const filteredPages = allPages.filter(p => {
+    const matchesCategory = activeCategory === 'All' || p.group === activeCategory;
+    const matchesSearch = 
+      p.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      p.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.group.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
   return (
     <section className="screen">
       <div className="sectionHead">
         <div>
           <span className="pill"><BookOpen size={16} /> சட்ட நூலகம்</span>
-          <h2>அனைத்து வழிகாட்டி பக்கங்கள்</h2>
+          <h2>சட்ட வழிகாட்டி நூலகம்</h2>
         </div>
-        <strong>{allPages.length} பக்கங்கள்</strong>
+        <strong>{filteredPages.length} வழிகாட்டிகள்</strong>
       </div>
-      {pageGroups.map((group) => <PageShelf key={group.title} group={group.title} />)}
+
+      {/* Premium Search Box */}
+      <div className="searchBarContainer" style={{
+        display: 'flex',
+        alignItems: 'center',
+        background: 'var(--panel-bg, #ffffff)',
+        padding: '0.8rem 1.2rem',
+        borderRadius: '12px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+        marginBottom: '1.5rem',
+        border: '1px solid rgba(0, 0, 0, 0.08)'
+      }}>
+        <Search size={20} style={{ color: 'var(--text-secondary, #666)', marginRight: '0.8rem' }} />
+        <input
+          type="text"
+          placeholder="சட்டத் தலைப்புகள், உரிமைகள் அல்லது வழிகாட்டிகளைத் தேடுங்கள்..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            border: 'none',
+            outline: 'none',
+            width: '100%',
+            fontSize: '1rem',
+            background: 'transparent',
+            color: 'var(--text-main, #333)'
+          }}
+        />
+        {searchTerm && (
+          <button 
+            onClick={() => setSearchTerm('')} 
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--text-secondary, #666)'
+            }}
+          >
+            <X size={18} />
+          </button>
+        )}
+      </div>
+
+      {/* Category Selection Filter Pills */}
+      <div className="categoryFilters" style={{
+        display: 'flex',
+        gap: '0.6rem',
+        overflowX: 'auto',
+        paddingBottom: '0.8rem',
+        marginBottom: '1.8rem',
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none'
+      }}>
+        {categories.map((cat) => {
+          const isActive = activeCategory === cat;
+          return (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              style={{
+                whiteSpace: 'nowrap',
+                padding: '0.5rem 1.2rem',
+                borderRadius: '50px',
+                fontSize: '0.9rem',
+                fontWeight: isActive ? '600' : '400',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                background: isActive ? 'var(--primary-color, #10b981)' : 'var(--panel-bg, #ffffff)',
+                color: isActive ? '#ffffff' : 'var(--text-secondary, #666)',
+                boxShadow: isActive ? '0 4px 10px rgba(16, 185, 129, 0.3)' : '0 2px 6px rgba(0, 0, 0, 0.03)'
+              }}
+            >
+              {cat === 'All' ? 'அனைத்தும்' : cat}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Search / Filter Results Grid */}
+      {filteredPages.length > 0 ? (
+        <div className="pageGrid" style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+          gap: '1.2rem'
+        }}>
+          {filteredPages.map((p) => (
+            <Link 
+              to={`${USER_BASE}/page/${p.slug}`} 
+              key={p.slug} 
+              className="pageTile"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                padding: '1.2rem',
+                background: 'var(--panel-bg, #ffffff)',
+                border: '1px solid rgba(0, 0, 0, 0.05)',
+                borderRadius: '12px',
+                textDecoration: 'none',
+                color: 'inherit',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-3px)';
+                e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.06)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.02)';
+              }}
+            >
+              <div>
+                <span className="libraryCardGroup" style={{
+                  fontSize: '0.8rem',
+                  color: 'var(--primary-color, #10b981)',
+                  fontWeight: '600',
+                  textTransform: 'uppercase',
+                  marginBottom: '0.5rem',
+                  display: 'inline-block'
+                }}>{p.group}</span>
+                <h3 style={{
+                  fontSize: '1.1rem',
+                  margin: '0 0 0.6rem 0',
+                  color: 'var(--text-main, #333)',
+                  lineHeight: '1.3'
+                }}>{p.title}</h3>
+                <p style={{
+                  fontSize: '0.9rem',
+                  color: 'var(--text-secondary, #666)',
+                  margin: '0 0 1.2rem 0',
+                  lineHeight: '1.5',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden'
+                }}>{p.text}</p>
+              </div>
+              <div className="libraryCardFooter" style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                fontSize: '0.9rem',
+                color: 'var(--primary-color, #10b981)',
+                fontWeight: '600',
+                borderTop: '1px solid rgba(0, 0, 0, 0.04)',
+                paddingTop: '0.8rem',
+                marginTop: 'auto'
+              }}>
+                <span>மேலும் வாசிக்க</span>
+                <ChevronRight size={16} />
+              </div>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="panel" style={{
+          textAlign: 'center',
+          padding: '3rem 1.5rem',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '1rem'
+        }}>
+          <AlertTriangle size={48} style={{ color: 'var(--text-secondary, #999)' }} />
+          <h3>தேடலுக்குப் பொருத்தமான வழிகாட்டிகள் எதுவும் கிடைக்கவில்லை.</h3>
+          <p style={{ color: 'var(--text-secondary, #666)', maxWidth: '400px' }}>
+            விவரங்களைக் கண்டறிய எங்கள் குரல் வழிகாட்டியிடம் உங்கள் கேள்வியைக் கேட்கலாம்.
+          </p>
+          <Link to={`${USER_BASE}/assistant`} className="primaryBtn" style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            textDecoration: 'none'
+          }}>
+            <Mic size={17} /> குரல் உதவியிடம் கேளுங்கள்
+          </Link>
+        </div>
+      )}
     </section>
   );
 }
@@ -506,7 +701,16 @@ function Lawyers() {
 }
 
 function Emergency() {
-  const [items, setItems] = useState([['தேசிய அவசரம்', '112', 'உடனடி ஆபத்து அல்லது காவல் உதவி'], ['பெண்கள் உதவி எண்', '181', 'பெண்கள் பாதுகாப்பு மற்றும் ஆதரவு'], ['குழந்தை உதவி எண்', '1098', 'குழந்தை பாதுகாப்பு'], ['நுகர்வோர் உதவி எண்', '1915', 'பொருள் மற்றும் சேவை புகார்கள்']]);
+  const [items, setItems] = useState([
+    ['தேசிய அவசரம் (National Emergency)', '112', 'அனைத்து அவசர தேவைகள் மற்றும் காவல் உதவிக்காக'],
+    ['பெண்கள் உதவி (Women Helpline)', '181', 'பெண்கள் பாதுகாப்பு, வன்முறை மற்றும் உடனடி ஆதரவுக்காக'],
+    ['இலவச சட்ட உதவி (Free Legal Aid - NALSA)', '15100', 'சட்ட சேவை ஆணையத்தின் இலவச சட்ட உதவி மற்றும் ஆலோசனைகளுக்காக'],
+    ['சைபர் நிதி மோசடி (Cyber Financial Fraud)', '1930', 'ஆன்லைன் வங்கி அல்லது UPI பண மோசடி புகார்களைப் பதிவு செய்ய'],
+    ['நுகர்வோர் உதவி (National Consumer Helpline)', '1915', 'நுகர்வோர் பொருள் மற்றும் சேவை தொடர்பான புகார்களைப் பதிவு செய்ய'],
+    ['குழந்தை உதவி (Child Helpline)', '1098', 'குழந்தை பாதுகாப்பு, ஆதரவு மற்றும் கடத்தல் தடுப்புக்காக'],
+    ['மூத்த குடிமக்கள் உதவி (Senior Citizen Helpline)', '14567', 'மூத்த குடிமக்களின் பாதுகாப்பு, பராமரிப்பு மற்றும் உதவிக்காக'],
+    ['மாநில அவசர கட்டுப்பாடு (State Emergency)', '1070', 'பேரிடர் மற்றும் இயற்கை பேரிடர் கால கட்டுப்பாட்டு அறைக்காக']
+  ]);
   const [backendMessage, setBackendMessage] = useState('');
 
   React.useEffect(() => {
@@ -517,7 +721,7 @@ function Emergency() {
         if (!res.ok) throw new Error('failed');
         const data = await res.json();
         const mapped = Array.isArray(data)
-          ? data.map((row) => [row.title || '', row.number || '', row.description || '']).filter((i) => i[0] && i[1])
+          ? data.map((row) => [row.title || '', row.number || row.phone || '', row.description || row.note || '']).filter((i) => i[0] && i[1])
           : [];
         if (!cancelled && mapped.length > 0) {
           setItems(mapped);
@@ -572,7 +776,51 @@ function HistoryPage() {
 
 function Profile() {
   const [saved, setSaved] = useState('');
-  return <section className="screen twoCol"><div className="panel"><span className="pill"><User size={16} /> பயனர்</span><h2>சுயவிவரம்</h2><label>பெயர்<input defaultValue="பயனர்" /></label><label>மாவட்டம்<input defaultValue="சென்னை" /></label><label>விருப்ப மொழி<input defaultValue="தமிழ்" /></label><button className="primaryBtn" onClick={() => setSaved('இந்த மாதிரி செயலிக்காக சுயவிவரம் இங்கே சேமிக்கப்பட்டது.')}>சேமி</button>{saved && <p className="notice">{saved}</p>}</div><div className="panel"><h2>அணுகல் வசதி</h2><MiniList title="இயங்கும் அம்சங்கள்" items={['குரல் உள்ளீடு', 'குரல் பதில்', 'பெரிய தொடு பொத்தான்கள்', 'கைபேசி நட்பு அமைப்பு']} /></div></section>;
+  const [session, setSession] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('lawvoice-session')) || {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [name, setName] = useState(session.name || 'பயனர்');
+  const [district, setDistrict] = useState(session.district || 'சென்னை');
+  const [language, setLanguage] = useState(session.language || 'தமிழ்');
+
+  const handleSave = () => {
+    const updatedSession = { ...session, name, district, language };
+    localStorage.setItem('lawvoice-session', JSON.stringify(updatedSession));
+    setSaved('சுயவிவரம் வெற்றிகரமாக சேமிக்கப்பட்டது!');
+    setTimeout(() => setSaved(''), 4000);
+  };
+
+  return (
+    <section className="screen twoCol">
+      <div className="panel">
+        <span className="pill"><User size={16} /> பயனர்</span>
+        <h2>சுயவிவரம்</h2>
+        <label>
+          பெயர்
+          <input value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <label>
+          மாவட்டம்
+          <input value={district} onChange={(e) => setDistrict(e.target.value)} />
+        </label>
+        <label>
+          விருப்ப மொழி
+          <input value={language} onChange={(e) => setLanguage(e.target.value)} />
+        </label>
+        <button className="primaryBtn" onClick={handleSave}>சேமி</button>
+        {saved && <p className="notice">{saved}</p>}
+      </div>
+      <div className="panel">
+        <h2>அணுகல் வசதி</h2>
+        <MiniList title="இயங்கும் அம்சங்கள்" items={['குரல் உள்ளீடு', 'குரல் பதில்', 'பெரிய தொடு பொத்தான்கள்', 'கைபேசி நட்பு அமைப்பு']} />
+      </div>
+    </section>
+  );
 }
 
 function Admin() {

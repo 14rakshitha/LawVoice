@@ -8,11 +8,22 @@ const PeopleLawyers = () => {
   const [locationMessage, setLocationMessage] = useState('');
   const [expanded, setExpanded] = useState('saved-lawyer');
   const [requestMessage, setRequestMessage] = useState('');
-  const [requestForm, setRequestForm] = useState({ name: 'டெமோ ব்যবহারকারী', phone: '+91 98765 43210', issue: '' });
+  const [requestForm, setRequestForm] = useState(() => {
+    try {
+      const session = JSON.parse(localStorage.getItem('lawvoice-session')) || {};
+      return {
+        name: session.name || 'டெமோ பயனர்',
+        phone: session.phone || '+91 98765 43210',
+        issue: ''
+      };
+    } catch {
+      return { name: 'டெமோ பயனர்', phone: '+91 98765 43210', issue: '' };
+    }
+  });
   const [backendLawyers, setBackendLawyers] = useState([]);
   const [backendError, setBackendError] = useState('');
   const savedLawyer = readStoredLawyerProfile();
-
+ 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -31,7 +42,7 @@ const PeopleLawyers = () => {
     load();
     return () => { cancelled = true; };
   }, []);
-
+ 
   const lawyers = [
     {
       id: 'saved-lawyer',
@@ -55,11 +66,11 @@ const PeopleLawyers = () => {
         city: lawyer.city,
         phone: lawyer.phone,
         rating: `${lawyer.rating ?? '4.8'}`,
-        experience: 'சேவை அனுபவம்',
-        barId: 'சரிபார்க்கப்பட்டது',
+        experience: lawyer.experience || 'சேவை அனுபவம்',
+        barId: lawyer.barId || 'சரிபார்க்கப்பட்டது',
         availability: 'அழைப்பிற்கு கிடைக்கும்',
-        short: 'இந்த வகை வழக்குகளுக்கு நடைமுறை வழிகாட்டல்.',
-        bio: 'உங்கள் வழக்கின் ஆவணங்கள் மற்றும் உண்மை விவரங்களை வைத்து, சரியான அடுத்த படிகளை திட்டமிட்டு வழிகாட்ட முடியும்.',
+        short: lawyer.bio ? (lawyer.bio.length > 50 ? lawyer.bio.substring(0, 50) + '...' : lawyer.bio) : 'இந்த வகை வழக்குகளுக்கு நடைமுறை வழிகாட்டல்.',
+        bio: lawyer.bio || 'உங்கள் வழக்கின் ஆவணங்கள் மற்றும் உண்மை விவரங்களை வைத்து, சரியான அடுத்த படிகளை திட்டமிட்டு வழிகாட்ட முடியும்.',
         pastCases: []
       }))
       : demoLawyers.filter((lawyer) => lawyer.name !== savedLawyer.name))

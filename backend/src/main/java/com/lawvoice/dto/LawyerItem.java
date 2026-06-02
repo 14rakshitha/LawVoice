@@ -7,5 +7,8 @@ public record LawyerItem(
         String city,
         String phone,
         double rating,
-        boolean verified
+        boolean verified,
+        String experience,
+        String barId,
+        String bio
 ) {}

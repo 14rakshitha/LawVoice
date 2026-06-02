@@ -6,6 +6,7 @@ import {
   LockKeyhole,
   LogIn,
   Mic,
+  Phone,
   Scale,
   ShieldCheck,
   UserPlus,
@@ -26,12 +27,16 @@ const LoginPage = () => {
     email: '',
     password: '',
     phone: '',
+    identifier: '',
     district: 'சென்னை',
     barId: defaultLawyerProfile.barId,
     category: defaultLawyerProfile.category,
     city: defaultLawyerProfile.city,
     experience: defaultLawyerProfile.experience
   });
+
+  // Detect if the login identifier is a phone number (digits only) or a name
+  const isPhoneIdentifier = (val) => /^[0-9]+$/.test(val.trim());
 
   const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
 
@@ -88,11 +93,14 @@ const LoginPage = () => {
         return;
       }
 
-      const response = await authLogin({
-        role,
-        email: form.email.trim(),
-        password: form.password
-      });
+      const id = form.identifier.trim();
+      const loginPayload = { role, password: form.password };
+      if (isPhoneIdentifier(id)) {
+        loginPayload.phone = id;
+      } else {
+        loginPayload.name = id;
+      }
+      const response = await authLogin(loginPayload);
       completeLogin(response);
     } catch (err) {
       setError(err.message || 'சேவை இணைப்பு தோல்வி. Backend ஓடுகிறதா என்பதை சரிபார்க்கவும்.');
@@ -146,28 +154,48 @@ const LoginPage = () => {
             <p className="authHint">
               {isRegister
                 ? 'புதிய கணக்கை உருவாக்கி உடனே தொடங்குங்கள்.'
-                : 'ஏற்கனவே பதிவு செய்த மின்னஞ்சல் மற்றும் கடவுச்சொல்லை பயன்படுத்துங்கள்.'}
+                : 'உங்கள் பெயர் அல்லது கைபேசி எண் மற்றும் கடவுச்சொல்லை உள்ளிடுங்கள்.'}
             </p>
           </div>
 
           {isRegister && (
-            <label>பெயர்
-              <input value={form.name} onChange={(e) => update('name', e.target.value)} required autoComplete="name" />
-            </label>
+            <>
+              <label>பெயர்
+                <input value={form.name} onChange={(e) => update('name', e.target.value)} required autoComplete="name" />
+              </label>
+              <label>கைபேசி எண்
+                <input
+                  type="tel"
+                  placeholder="10 இலக்க கைபேசி எண்"
+                  value={form.phone}
+                  onChange={(e) => update('phone', e.target.value)}
+                  required
+                  pattern="[0-9]{10}"
+                  title="10 இலக்க கைபேசி எண் உள்ளிடவும்"
+                  autoComplete="tel"
+                />
+              </label>
+            </>
           )}
 
-          <label>மின்னஞ்சல்
-            <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} required autoComplete="email" />
-          </label>
+          {!isRegister && (
+            <label>பெயர் அல்லது கைபேசி எண்
+              <input
+                type="text"
+                placeholder="உங்கள் பெயர் அல்லது 10 இலக்க கைபேசி எண்"
+                value={form.identifier}
+                onChange={(e) => update('identifier', e.target.value)}
+                required
+                autoComplete="username"
+              />
+            </label>
+          )}
           <label>கடவுச்சொல்
             <input type="password" value={form.password} onChange={(e) => update('password', e.target.value)} required minLength={6} autoComplete={isRegister ? 'new-password' : 'current-password'} />
           </label>
 
           {isRegister && (
             <>
-              <label>தொலைபேசி
-                <input value={form.phone} onChange={(e) => update('phone', e.target.value)} required autoComplete="tel" />
-              </label>
               <label>மாவட்டம்
                 <input value={form.district} onChange={(e) => update('district', e.target.value)} required />
               </label>
@@ -201,9 +229,7 @@ const LoginPage = () => {
             )}
           </button>
 
-          <p className="authFootnote">
-            டெமோ: மக்கள் <strong>people@lawvoice.com</strong> / <strong>people123</strong> · வழக்கறிஞர் <strong>lawyer@lawvoice.com</strong> / <strong>lawyer123</strong>
-          </p>
+
         </form>
       </section>
     </div>
