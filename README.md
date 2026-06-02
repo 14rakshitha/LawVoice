@@ -1,4 +1,4 @@
-# LawVoice
+ # LawVoice
 
 English full-stack legal assistance web app.
 
@@ -15,7 +15,7 @@ npm.cmd install --strict-ssl=false
 npm.cmd run dev
 ```
 
-Open `http://localhost:5173`.
+Open `http://localhost:6000`.
 
 ## Run Backend
 
@@ -23,10 +23,14 @@ Open `http://localhost:5173`.
 cd backend
 $env:MYSQL_USER="lawvoice_user"
 $env:MYSQL_PASSWORD="lawvoice_pass"
+$env:SARVAM_API_KEY="your_sarvam_api_key"
+$env:SARVAM_MODEL="sarvam-105b"
 mvn spring-boot:run
 ```
 
 API base URL: `http://localhost:8081/api`
+
+`SARVAM_API_KEY` enables Tamil AI answers on the சட்டக்குரல் page. If it is not set, the app falls back to local demo guidance.
 
 ## MySQL Setup
 

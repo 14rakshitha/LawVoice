@@ -31,6 +31,11 @@ public class LegalController {
         return Map.of("status", "running");
     }
 
+    @GetMapping("/ai/status")
+    public Map<String, Object> aiStatus() {
+        return service.aiStatus();
+    }
+
     @PostMapping("/legal/ask")
     public AskResponse ask(@Valid @RequestBody AskRequest request) {
         return service.answer(request);

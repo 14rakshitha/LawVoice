@@ -13,7 +13,7 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--paper); color: var(--ink); }
+body { margin: 0; background: var(--paper); color: var(--ink); font-size: 15px; }
 a { color: inherit; text-decoration: none; }
 button, input, textarea, select { font: inherit; }
 button { cursor: pointer; }
@@ -84,51 +84,62 @@ label { display: grid; gap: 4px; margin: 14px 0; color: var(--muted); font-weigh
 .mobileOnly { display: none; }
 .scrim { display: none; }
 
-.login-page { min-height: 100vh; background: radial-gradient(circle at top left, rgba(247,201,72,.28), transparent 34%), linear-gradient(135deg, #f8fbf9 0%, #edf5f1 46%, #ffffff 100%); display: grid; place-items: center; padding: clamp(16px, 3vw, 28px); overflow-x: hidden; }
-.loginHero { width: min(1180px, calc(100vw - 32px)); display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, .78fr); gap: 24px; align-items: stretch; }
+.login-page { min-height: 100vh; background: radial-gradient(circle at 12% 10%, rgba(247,201,72,.32), transparent 27%), radial-gradient(circle at 90% 20%, rgba(11,138,125,.16), transparent 30%), linear-gradient(135deg, #f7faf8 0%, #edf5f1 48%, #fffdf7 100%); display: grid; place-items: center; padding: clamp(16px, 3vw, 34px); overflow-x: hidden; position: relative; }
+.login-page::before { content: ""; position: absolute; inset: 18px; border: 1px solid rgba(22,98,79,.12); border-radius: 18px; pointer-events: none; }
+.login-page::after { content: ""; position: absolute; width: min(48vw, 520px); aspect-ratio: 1; right: -18%; bottom: -28%; background: radial-gradient(circle, rgba(22,98,79,.13), transparent 66%); pointer-events: none; }
+.loginHero { width: min(1180px, calc(100vw - 32px)); display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, .78fr); gap: 24px; align-items: stretch; position: relative; z-index: 1; }
 .loginCopy, .rolePanel, .lawyerHero, .lawyerPanel, .connect-users, .lawyerScore { background: rgba(255,255,255,.92); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 24px 60px rgba(16,35,31,.09); }
 .loginCopy, .rolePanel, .lawyerHero, .lawyerPanel, .connect-users, .lawyerScore { min-width: 0; }
-.loginCopy { padding: clamp(24px, 4.5vw, 54px); display: flex; flex-direction: column; justify-content: center; }
+.loginCopy { padding: clamp(26px, 4.5vw, 58px); display: flex; flex-direction: column; justify-content: center; background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(255,251,239,.92)); border-color: rgba(22,98,79,.12); position: relative; overflow: hidden; }
+.loginCopy::before { content: ""; position: absolute; width: 190px; height: 190px; right: -82px; top: -72px; border-radius: 50%; background: rgba(247,201,72,.22); }
+.loginCopy::after { content: ""; position: absolute; width: 86px; height: 86px; right: 38px; bottom: 34px; border-radius: 50%; border: 1px solid rgba(22,98,79,.14); }
+.loginCopy > * { position: relative; z-index: 1; }
 .loginCopy h1, .lawyerHero h1 { margin: 16px 0 12px; font-size: clamp(34px, 4.2vw, 52px); line-height: 1.16; letter-spacing: 0; max-width: 100%; }
 .loginCopy p, .lawyerHero p, .lawyerScore p { color: var(--muted); line-height: 1.8; max-width: 680px; }
 .loginSignals, .lawyerBadges { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
-.loginSignals span, .lawyerBadges span { display: inline-flex; align-items: center; gap: 7px; padding: 10px 12px; border-radius: 8px; background: #edf7f4; color: #28584d; font-weight: 700; }
-.rolePanel { padding: 18px; display: grid; gap: 14px; align-content: center; min-width: 0; }
-.roleCard { min-height: 170px; border: 1px solid var(--line); border-radius: 8px; background: #ffffff; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 20px; text-align: left; color: var(--ink); transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
-.roleCard:hover { transform: translateY(-3px); border-color: var(--teal); box-shadow: 0 18px 42px rgba(16,35,31,.11); }
-.roleCard.lawyer { background: linear-gradient(135deg, #ffffff, #f8f1df); }
-.roleCard.user { background: linear-gradient(135deg, #ffffff, #e9f6f2); }
-.roleIcon { width: 58px; height: 58px; border-radius: 8px; display: grid; place-items: center; background: var(--green); color: white; }
+.loginSignals span, .lawyerBadges span { display: inline-flex; align-items: center; gap: 7px; padding: 10px 12px; border-radius: 8px; background: #edf7f4; color: #28584d; font-weight: 700; box-shadow: inset 0 0 0 1px rgba(22,98,79,.06); }
+.rolePanel { padding: 18px; display: grid; gap: 16px; align-content: center; min-width: 0; background: rgba(255,255,255,.72); backdrop-filter: blur(18px); border-color: rgba(255,255,255,.72); }
+.roleCard { min-height: 174px; border: 1px solid rgba(22,98,79,.12); border-radius: 12px; background: #ffffff; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 22px; text-align: left; color: var(--ink); transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease; position: relative; overflow: hidden; }
+.roleCard::before { content: ""; position: absolute; inset: 0; opacity: .72; pointer-events: none; }
+.roleCard:hover { transform: translateY(-4px); border-color: rgba(11,138,125,.55); box-shadow: 0 22px 48px rgba(16,35,31,.14); }
+.roleCard.lawyer::before { background: linear-gradient(135deg, rgba(255,255,255,.2), rgba(247,201,72,.18)); }
+.roleCard.user::before { background: linear-gradient(135deg, rgba(255,255,255,.2), rgba(11,138,125,.13)); }
+.roleCard > * { position: relative; z-index: 1; }
+.roleIcon { width: 62px; height: 62px; border-radius: 14px; display: grid; place-items: center; background: linear-gradient(145deg, var(--green), #0b7b70); color: white; box-shadow: 0 14px 28px rgba(22,98,79,.22); }
 .roleCard strong { display: block; font-size: clamp(20px, 2vw, 24px); line-height: 1.3; margin-bottom: 8px; }
 .roleCard small { display: block; color: var(--muted); line-height: 1.55; font-size: 14px; }
 
 .lawyerShell { min-height: 100vh; background: #f4f8f6; color: var(--ink); }
 .lawyerTopbar { min-height: 78px; padding: 16px 28px; display: flex; align-items: center; justify-content: space-between; gap: 18px; background: rgba(255,255,255,.9); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 6; backdrop-filter: blur(12px); }
 .compactBrand { margin: 0; color: var(--ink); }
-.lawyerMain { padding: 28px; display: grid; gap: 24px; }
-.lawyerHero { padding: clamp(24px, 5vw, 54px); display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, .35fr); gap: 24px; align-items: stretch; }
+.lawyerMain { width: min(1360px, calc(100% - 48px)); margin: 0 auto; padding: 28px 0 48px; display: grid; gap: 24px; }
+.lawyerHero { padding: clamp(28px, 4vw, 48px); display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 340px); gap: 24px; align-items: stretch; }
 .lawyerScore { padding: 26px; display: flex; flex-direction: column; justify-content: center; background: #10231f; color: #eef8f4; }
 .lawyerScore strong { font-size: 56px; line-height: 1; color: #f7c948; }
 .lawyerScore span { font-weight: 800; margin-top: 8px; }
 .lawyerScore p { color: #c4d7d1; }
 .lawyerStats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.lawyerSection { display: grid; gap: 16px; scroll-margin-top: 96px; }
+.sectionTitle { padding: 6px 2px 0; }
+.sectionTitle h2 { margin-bottom: 0; }
 .lawyerGrid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 18px; align-items: start; }
 .providerGrid { grid-template-columns: minmax(0, 1.25fr) minmax(360px, .75fr); }
-.lawyerPanel, .connect-users { padding: 22px; min-width: 0; }
+.requestWorkspace { display: grid; grid-template-columns: minmax(320px, .8fr) minmax(0, 1.2fr); gap: 18px; align-items: start; }
+.lawyerPanel, .connect-users { padding: 24px; min-width: 0; }
 .lawyerPanel h2, .connect-users h2 { margin: 10px 0 16px; font-size: clamp(22px, 2.4vw, 32px); line-height: 1.22; letter-spacing: 0; }
 .clientPanel { grid-row: span 2; }
-.providerFormPanel { grid-row: span 3; }
-.enquiryPanel { max-height: 760px; overflow: auto; }
-.formGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
+.providerFormPanel { grid-row: auto; }
+.enquiryPanel { max-height: none; overflow: visible; }
+.formGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 16px; }
 .wideField { grid-column: 1 / -1; }
-.formGrid textarea { min-height: 120px; }
+.formGrid textarea { min-height: 132px; }
 .filterRow { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 12px; align-items: start; margin-bottom: 14px; }
 .searchField { position: relative; margin: 0 0 14px; color: var(--muted); }
 .searchField svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; }
 .searchField input { padding-left: 42px; margin: 0; }
 .filterRow .searchField, .filterRow select { margin: 0; }
 .clientList, .networkList, .resourceList, .timeline { display: grid; gap: 10px; }
-.clientRow, .networkUser, .resourceItem { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: #fbfdfc; color: var(--ink); padding: 13px; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; min-width: 0; }
+.clientRow, .networkUser, .resourceItem { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: #fbfdfc; color: var(--ink); padding: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; min-width: 0; }
 .clientRow > span, .networkUser > span { min-width: 0; }
 .clientRow.active, .networkUser.active, .resourceItem:hover { border-color: var(--teal); background: #edf7f4; }
 .clientRow strong, .networkUser strong { display: block; }
@@ -138,7 +149,8 @@ label { display: grid; gap: 4px; margin: 14px 0; color: var(--muted); font-weigh
 .caseMeta span { border: 1px solid var(--line); border-radius: 8px; padding: 12px; color: var(--muted); background: #fbfdfc; }
 .caseMeta strong { display: block; color: var(--ink); margin-top: 5px; }
 .enquirySummary { color: var(--muted); line-height: 1.75; margin: 16px 0 0; }
-.timeline div { border-left: 3px solid var(--teal); padding: 6px 0 10px 13px; display: grid; gap: 3px; }
+.timeline { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.timeline div { border-left: 3px solid var(--teal); padding: 10px 0 12px 14px; display: grid; gap: 4px; background: #fbfdfc; border-radius: 0 8px 8px 0; }
 .timeline span { font-weight: 800; }
 .timeline small { color: var(--muted); }
 .resourceItem { min-height: 54px; font-weight: 800; }
@@ -156,6 +168,39 @@ label { display: grid; gap: 4px; margin: 14px 0; color: var(--muted); font-weigh
 .message-input { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 14px; border-top: 1px solid var(--line); }
 .message-input input { margin: 0; }
 
+.authHero { grid-template-columns: minmax(0, .95fr) minmax(360px, .85fr); }
+.authPanel { align-content: start; }
+.authPanel h2 { margin: 10px 0 4px; font-size: clamp(24px, 2.4vw, 34px); }
+.credentialBox { margin-top: 24px; padding: 14px; border: 1px solid #d7e5df; border-radius: 8px; background: #ffffff; display: grid; gap: 7px; color: var(--muted); }
+.credentialBox strong { color: var(--ink); }
+.roleSwitch { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 5px; border: 1px solid var(--line); border-radius: 8px; background: #f4f8f6; }
+.roleSwitch button { min-height: 42px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.roleSwitch button.active { background: var(--green); color: white; box-shadow: 0 10px 22px rgba(22,98,79,.18); }
+.lawyerOnboarding { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 10px; }
+.lawyerOnboarding h3, .requestBox h4 { margin: 8px 0 4px; font-size: 18px; }
+.compactFields { gap: 0 10px; }
+.compactFields label { margin: 8px 0; }
+.compactFields input, .compactFields select { padding: 10px 11px; }
+.compactFields textarea { min-height: 96px; padding: 10px 11px; }
+.errorNotice { background: #fff1f2; border-color: #fecdd3; color: #9f1239; }
+
+.lawyerDirectory { display: grid; gap: 14px; }
+.lawyerCard { background: white; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 16px 35px rgba(16,35,31,.06); padding: 18px; }
+.lawyerCard.expanded { border-color: rgba(11,138,125,.45); }
+.lawyerCardTop { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: start; }
+.lawyerCard h3 { margin: 0 0 8px; font-size: clamp(21px, 2vw, 28px); }
+.lawyerCard p { color: var(--muted); line-height: 1.7; margin: 0; }
+.lawyerMiniMeta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.lawyerMiniMeta span { display: inline-flex; align-items: center; gap: 5px; padding: 7px 9px; border: 1px solid #d7e5df; border-radius: 8px; background: #f7fbf9; color: #28584d; font-weight: 700; font-size: 13px; }
+.lawyerFullDetails { display: grid; gap: 16px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.requestBox { border: 1px solid var(--line); border-radius: 8px; background: #fbfdfc; padding: 16px; }
+.advocateSuggestions { margin-top: 22px; border-top: 1px solid var(--line); padding-top: 18px; display: grid; gap: 14px; }
+.advocateSuggestions h3 { margin: 8px 0 0; font-size: 22px; }
+.suggestionGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.suggestionCard { border: 1px solid var(--line); border-radius: 8px; background: #fbfdfc; padding: 14px; display: grid; gap: 8px; }
+.suggestionCard strong { font-size: 18px; }
+.suggestionCard span { color: var(--muted); line-height: 1.5; }
+
 @media (max-width: 1100px) {
   .app { grid-template-columns: 1fr; }
   .sidebar { position: fixed; inset: 0 auto 0 0; width: min(86vw, 310px); transform: translateX(-100%); transition: transform .2s ease; z-index: 20; }
@@ -163,7 +208,7 @@ label { display: grid; gap: 4px; margin: 14px 0; color: var(--muted); font-weigh
   .mobileOnly, .scrim { display: inline-grid; }
   .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.32); border: 0; z-index: 15; color: white; place-items: end; padding: 24px; }
   .hero, .twoCol { grid-template-columns: 1fr; }
-  .loginHero, .lawyerHero, .lawyerGrid, .providerGrid, .connectionGrid { grid-template-columns: 1fr; }
+  .loginHero, .lawyerHero, .lawyerGrid, .providerGrid, .requestWorkspace, .connectionGrid { grid-template-columns: 1fr; }
   .loginCopy h1, .lawyerHero h1 { font-size: clamp(32px, 6vw, 48px); }
   .rolePanel { align-content: start; }
   .lawyerStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -177,13 +222,16 @@ label { display: grid; gap: 4px; margin: 14px 0; color: var(--muted); font-weigh
   .topbarActions { width: 100%; justify-content: stretch; }
   .screen { padding: 16px; gap: 18px; }
   .hero > div:first-child, .panel { padding: 18px; }
-  .statGrid, .pageGrid, .cardGrid, .lawyerStats, .caseMeta, .formGrid, .filterRow { grid-template-columns: 1fr; }
+  .statGrid, .pageGrid, .cardGrid, .lawyerStats, .caseMeta, .formGrid, .filterRow, .timeline, .suggestionGrid { grid-template-columns: 1fr; }
+  .authHero, .lawyerCardTop { grid-template-columns: 1fr; }
   .sectionHead, .rowBetween { align-items: flex-start; flex-direction: column; }
   .toolbar, .heroActions, .message-input { display: grid; grid-template-columns: 1fr; }
   .primaryBtn, .secondaryBtn, .dangerBtn { width: 100%; }
-  .login-page, .lawyerMain { padding: 16px; }
+  .login-page { padding: 16px; }
+  .lawyerMain { width: calc(100% - 32px); padding: 16px 0 32px; }
   .loginCopy, .rolePanel, .lawyerHero, .lawyerPanel, .connect-users { padding: 18px; }
   .loginHero { width: 100%; gap: 16px; }
+  .login-page::before { inset: 8px; border-radius: 12px; }
   .loginCopy h1, .lawyerHero h1 { font-size: clamp(30px, 10vw, 40px); line-height: 1.18; }
   .hero h2, .panel h2, .sectionHead h2 { font-size: clamp(23px, 8vw, 34px); }
   .roleCard { grid-template-columns: 1fr auto; min-height: auto; padding: 16px; gap: 12px; }
@@ -195,8 +243,11 @@ label { display: grid; gap: 4px; margin: 14px 0; color: var(--muted); font-weigh
 @media (max-width: 460px) {
   .login-page { padding: 12px; }
   .loginCopy, .rolePanel { padding: 16px; }
+  .loginCopy::before { width: 140px; height: 140px; right: -72px; top: -62px; }
+  .loginCopy::after { display: none; }
   .loginSignals span, .lawyerBadges span { width: 100%; }
   .pill { border-radius: 8px; }
   .roleCard { grid-template-columns: 1fr; }
+  .roleIcon { width: 54px; height: 54px; border-radius: 12px; }
   .roleCard svg:last-child { justify-self: end; }
 }

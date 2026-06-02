@@ -1,5 +1,6 @@
 com\lawvoice\config\CorsConfig$1.class
 com\lawvoice\repository\QueryHistoryRepository.class
+com\lawvoice\service\LegalAssistantService$SarvamCall.class
 com\lawvoice\controller\LegalController.class
 com\lawvoice\dto\FaqItem.class
 com\lawvoice\model\QueryHistory.class
@@ -9,4 +10,5 @@ com\lawvoice\dto\LawyerItem.class
 com\lawvoice\service\LegalAssistantService.class
 com\lawvoice\config\CorsConfig.class
 com\lawvoice\dto\EmergencyItem.class
+com\lawvoice\service\LegalAssistantService$1.class
 com\lawvoice\dto\AskResponse.class

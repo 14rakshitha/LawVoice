@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import LoginPage from './LoginPage';
 import LawyerProfile from './LawyerProfile';
+import PeopleLawyers from './PeopleLawyers';
+import { buildTamilLegalAnswer } from './tamilLegalAssistant';
 import './styles.css';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8081/api';
@@ -152,6 +154,30 @@ const fallbackAnswer = {
   disclaimer: 'இது பொது சட்ட விழிப்புணர்வு மட்டுமே; தொழில்முறை சட்ட ஆலோசனைக்கு மாற்றாகாது.'
 };
 
+const aiUnavailableAnswer = {
+  topic: 'Sarvam AI இணைக்கப்படவில்லை',
+  summary: 'வழக்கறிஞர் போல் துல்லியமாக பதில் தர இந்த பக்கத்திற்கு backend Sarvam AI இணைப்பு தேவை. Backend ஓடவில்லை, SARVAM_API_KEY set செய்யப்படவில்லை, அல்லது Sarvam API பதில் தரவில்லை. Generic பதிலை காட்டாமல் இணைப்பு பிரச்சினையைத் தெரிவிக்கிறோம்.',
+  steps: [
+    'Backend terminal-ல் SARVAM_API_KEY set செய்யுங்கள்.',
+    'Backend-ஐ restart செய்து மீண்டும் கேள்வி கேளுங்கள்.',
+    'கேள்வியை விவரமாக எழுதுங்கள்: என்ன நடந்தது, எப்போது, எங்கு, யார், என்ன ஆதாரம் உள்ளது.'
+  ],
+  rights: ['தவறான அல்லது generic சட்ட பதிலை நம்ப வேண்டாம்.'],
+  nextActions: ['Sarvam இணைந்த பிறகு இந்த பக்கம் கேள்விக்கேற்ப செயல் திட்டம் தரும்.'],
+  disclaimer: 'AI சேவை இணைக்கப்படாததால் சட்ட வழிகாட்டல் உருவாக்கப்படவில்லை.'
+};
+
+function isBadBackendTamil(answer) {
+  const visibleText = [
+    answer.topic,
+    answer.summary,
+    ...(answer.steps || []),
+    ...(answer.rights || []),
+    ...(answer.nextActions || [])
+  ].join(' ');
+  return /à|Ã|Â/.test(visibleText);
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -208,7 +234,7 @@ function UserApp() {
           <Route path="/assistant" element={<Assistant />} />
           <Route path="/fir" element={<FirPage />} />
           <Route path="/knowledge" element={<Knowledge />} />
-          <Route path="/lawyers" element={<Lawyers />} />
+          <Route path="/lawyers" element={<PeopleLawyers />} />
           <Route path="/emergency" element={<Emergency />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/profile" element={<Profile />} />
@@ -262,6 +288,22 @@ function Assistant() {
     setBusy(true);
     setMessage('');
     try {
+      const statusRes = await fetch(`${API}/ai/status`);
+      if (statusRes.ok) {
+        const status = await statusRes.json();
+        if (false && !status.configured) {
+          setAnswer({
+            ...aiUnavailableAnswer,
+            summary: 'Sarvam AI key backend-ல் set செய்யப்படவில்லை. அதனால் வழக்கறிஞர் போல் துல்லியமான பதில் உருவாக்க முடியாது.',
+            nextActions: [
+              '$env:SARVAM_API_KEY="your_sarvam_api_key" set செய்து backend restart செய்யுங்கள்.',
+              'பிறகு இதே கேள்வியை மீண்டும் கேளுங்கள்.'
+            ]
+          });
+          setMessage('Sarvam AI key backend-ல் இல்லை.');
+          return;
+        }
+      }
       const res = await fetch(`${API}/legal/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -270,13 +312,17 @@ function Assistant() {
       if (!res.ok) {
         throw new Error('Request failed');
       }
-      const data = normalizeAnswer(await res.json());
+      const data = normalizeAnswer(await res.json(), query);
+      if (isBadBackendTamil(data)) {
+        setAnswer(buildTamilLegalAnswer(query));
+        setMessage('Backend பழைய/கேடான பதில் அனுப்புகிறது. Backend-ஐ புதிய code-உடன் restart செய்து Sarvam key set செய்யுங்கள்.');
+        return;
+      }
       setAnswer(data);
       saveLocal(query, data.summary);
     } catch {
-      setAnswer(fallbackAnswer);
-      saveLocal(query, fallbackAnswer.summary);
-      setMessage('பின்னணி சேவை இப்போது கிடைக்கவில்லை; அதனால் உள்ளூர் வழிகாட்டல் பதில் காட்டப்படுகிறது.');
+      setAnswer(buildTamilLegalAnswer(query));
+      setMessage('Backend/Sarvam இணைப்பு இல்லை. Generic local answer இப்போது காட்டப்படாது.');
     } finally {
       setBusy(false);
     }
@@ -313,12 +359,13 @@ function Assistant() {
         </div>
         {message && <p className="notice">{message}</p>}
       </div>
-      <AnswerCard answer={answer} />
+      <AnswerCard answer={answer} query={query} />
     </section>
   );
 }
 
-function AnswerCard({ answer }) {
+function AnswerCard({ answer, query = '' }) {
+  const [bookingMessage, setBookingMessage] = useState('');
   const speak = () => {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
@@ -326,6 +373,25 @@ function AnswerCard({ answer }) {
     utterance.lang = 'ta-IN';
     window.speechSynthesis.speak(utterance);
   };
+
+  const bookLawyer = (lawyer) => {
+    const request = {
+      id: `REQ-${Date.now().toString().slice(-5)}`,
+      lawyerId: lawyer.id,
+      name: 'Demo User',
+      phone: '+91 98765 43210',
+      category: lawyer.category,
+      city: lawyer.city,
+      urgency: 'New',
+      status: 'New request',
+      issue: query.trim() || answer.summary,
+      time: new Date().toLocaleString()
+    };
+    const previous = JSON.parse(localStorage.getItem('lawvoice-requests') || '[]');
+    localStorage.setItem('lawvoice-requests', JSON.stringify([request, ...previous]));
+    setBookingMessage(`${lawyer.name} அவர்களுக்கு கோரிக்கை அனுப்பப்பட்டது. அது வழக்கறிஞர் profile-ல் People requests பகுதியில் தெரியும்.`);
+  };
+
   return (
     <div className="panel answer">
       <div className="rowBetween">
@@ -337,6 +403,30 @@ function AnswerCard({ answer }) {
       <MiniList title="படிகள்" items={answer.steps} />
       <MiniList title="உரிமைகள்" items={answer.rights} />
       <MiniList title="அடுத்த உதவி" items={answer.nextActions} />
+      {answer.suggestedLawyers?.length > 0 && (
+        <div className="advocateSuggestions">
+          <div className="sectionHead">
+            <div>
+              <span className="pill"><MapPin size={16} /> வழக்கறிஞர் உதவி</span>
+              <h3>இந்த கேள்விக்குப் பொருத்தமான வழக்கறிஞர்கள்</h3>
+            </div>
+            <Link className="secondaryBtn" to={`${USER_BASE}/lawyers`}>முழு பட்டியல்</Link>
+          </div>
+          <div className="suggestionGrid">
+            {answer.suggestedLawyers.map((lawyer) => (
+              <div className="suggestionCard" key={`${lawyer.id}-${lawyer.name}`}>
+                <strong>{lawyer.name}</strong>
+                <span>{lawyer.category} | {lawyer.city} | மதிப்பீடு {lawyer.rating}</span>
+                <div className="toolbar">
+                  <button className="primaryBtn" onClick={() => bookLawyer(lawyer)}>கோரிக்கை அனுப்பு</button>
+                  <a className="secondaryBtn" href={`tel:${lawyer.phone}`}><Phone size={16} /> அழை</a>
+                </div>
+              </div>
+            ))}
+          </div>
+          {bookingMessage && <p className="notice">{bookingMessage}</p>}
+        </div>
+      )}
       <small>{answer.disclaimer}</small>
     </div>
   );
@@ -490,17 +580,19 @@ function readHistory() {
   }
 }
 
-function normalizeAnswer(data) {
+function normalizeAnswer(data, query = '') {
+  const localAnswer = buildTamilLegalAnswer(query);
   const answer = {
-    topic: data?.topic || fallbackAnswer.topic,
-    summary: data?.summary || fallbackAnswer.summary,
-    steps: Array.isArray(data?.steps) ? data.steps : fallbackAnswer.steps,
-    rights: Array.isArray(data?.rights) ? data.rights : fallbackAnswer.rights,
-    nextActions: Array.isArray(data?.nextActions) ? data.nextActions : fallbackAnswer.nextActions,
-    disclaimer: data?.disclaimer || fallbackAnswer.disclaimer
+    topic: data?.topic || localAnswer.topic,
+    summary: data?.summary || localAnswer.summary,
+    steps: Array.isArray(data?.steps) ? data.steps : localAnswer.steps,
+    rights: Array.isArray(data?.rights) ? data.rights : localAnswer.rights,
+    nextActions: Array.isArray(data?.nextActions) ? data.nextActions : localAnswer.nextActions,
+    suggestedLawyers: localAnswer.suggestedLawyers,
+    disclaimer: data?.disclaimer || localAnswer.disclaimer
   };
   const visibleText = [answer.topic, answer.summary, ...answer.steps, ...answer.rights, ...answer.nextActions, answer.disclaimer].join(' ');
-  return /[A-Za-z]{2,}/.test(visibleText) ? fallbackAnswer : answer;
+  return /à|Ã|Â/.test(visibleText) ? aiUnavailableAnswer : answer;
 }
 
 createRoot(document.getElementById('root')).render(<App />);
