@@ -320,7 +320,7 @@ function Assistant() {
       saveLocal(query, data.summary);
     } catch {
       setAnswer(buildTamilLegalAnswer(query));
-      setMessage('Backend/Sarvam இணைப்பு இல்லை. Generic local answer இப்போது காட்டப்படாது.');
+      setMessage('Backend/Sarvam இணைப்பு இல்லை. எளிய உள்ளூர் பதில் இப்போது காட்டப்படுகிறது.');
     } finally {
       setBusy(false);
     }
