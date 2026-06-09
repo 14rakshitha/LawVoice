@@ -1,21 +1,19 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  BadgeCheck,
   BriefcaseBusiness,
   CalendarCheck,
   FileCheck2,
-  MapPin,
+  Menu,
   MessageSquareText,
   Phone,
   Save,
-  Scale,
   Search,
-  ShieldCheck,
   Star,
   UsersRound,
   Plus,
-  Trash2
+  Trash2,
+  X
 } from 'lucide-react';
 import { practiceAreas, readStoredLawyerProfile, readStoredRequests } from './demoData';
 import { updateLawyerProfile, API } from './api';
@@ -54,6 +52,8 @@ const LawyerProfile = () => {
   const [activeRequest, setActiveRequest] = useState(null);
   const [saved, setSaved] = useState('');
   const [reply, setReply] = useState('');
+  const [activeTab, setActiveTab] = useState('profile');
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Set active request if requests are loaded
   useEffect(() => {
@@ -184,7 +184,7 @@ const LawyerProfile = () => {
   };
 
   const deleteCase = async (indexToDelete) => {
-    const updatedHistory = lawyer.caseHistory.filter((_, idx) => idx !== indexToDelete);
+    const updatedHistory = (lawyer.caseHistory || []).filter((_, idx) => idx !== indexToDelete);
     const updatedLawyer = { ...lawyer, caseHistory: updatedHistory };
     setLawyer(updatedLawyer);
     localStorage.setItem('lawvoice-lawyer-profile', JSON.stringify(updatedLawyer));
@@ -201,278 +201,338 @@ const LawyerProfile = () => {
   };
 
   return (
-    <div className="lawyerShell">
-      <header className="lawyerTopbar">
-        <Link className="brand compactBrand" to="/">
-          <div className="brandMark">LV</div>
+    <div className="app">
+      <aside className={menuOpen ? 'sidebar open' : 'sidebar'}>
+        <div className="brand">
+          <div className="brandMark">சகு</div>
           <div>
-            <strong>LawVoice வழக்கறிஞர்</strong>
-            <span>சுயவிவரம் மற்றும் கோரிக்கை பணிப்பகம்</span>
+            <strong>சட்டக்குரல்</strong>
+            <span>வழக்கறிஞர்</span>
           </div>
-        </Link>
-        <div className="topbarActions">
-          <Link className="secondaryBtn" to="/">வெளியேறு</Link>
-          <a className="quickCall" href={`tel:${lawyer.phone}`}><Phone size={17} /> அலுவலக அழைப்பு</a>
         </div>
-      </header>
+        <nav>
+          <a href="#" className={activeTab === 'profile' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('profile'); setMenuOpen(false); }}>
+            <BriefcaseBusiness size={18} />
+            <span>சுயவிவரத் தகவல்</span>
+          </a>
+          <a href="#" className={activeTab === 'cases' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('cases'); setMenuOpen(false); }}>
+            <FileCheck2 size={18} />
+            <span>வழக்கு வரலாறு</span>
+          </a>
+          <a href="#" className={activeTab === 'requests' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('requests'); setMenuOpen(false); }}>
+            <UsersRound size={18} />
+            <span>கோரிக்கைகள்</span>
+          </a>
+          <a href="#" className={activeTab === 'other' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('other'); setMenuOpen(false); }}>
+            <UsersRound size={18} />
+            <span>பிற வழக்கறிஞர்கள்</span>
+          </a>
+          <a href="#" className={activeTab === 'schedule' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setActiveTab('schedule'); setMenuOpen(false); }}>
+            <CalendarCheck size={18} />
+            <span>ஆலோசனைகள்</span>
+          </a>
+          
+          <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
+            <Link className="secondaryBtn" to="/" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>வெளியேறு</Link>
+          </div>
+        </nav>
+      </aside>
 
-      <main className="lawyerMain">
-        <section className="lawyerHero">
+      {menuOpen && <button className="scrim" onClick={() => setMenuOpen(false)} aria-label="பட்டியை மூடு"><X /></button>}
+
+      <main style={{ minHeight: '100vh', overflowY: 'auto' }}>
+        <header className="topbar">
+          <button className="iconBtn mobileOnly" onClick={() => setMenuOpen(true)} aria-label="பட்டியைத் திற">
+            <Menu size={21} />
+          </button>
           <div>
-            <span className="pill"><Scale size={16} /> வழக்கறிஞர் சுயவிவரம்</span>
-            <div className="lawyerHeaderRow">
-              <div className="lawyerAvatar" aria-hidden="true">{(lawyer.name || 'LV').slice(0, 2).toUpperCase()}</div>
-              <div>
-                <h1>{lawyer.name}</h1>
-                <p className="lawyerHeadline">
-                  <span><BadgeCheck size={16} /> {lawyer.barId}</span>
-                  <span><MapPin size={16} /> {lawyer.city}, {lawyer.state}</span>
-                  <span><Star size={16} /> 4.9</span>
-                </p>
-              </div>
-            </div>
-            <p>
-              {lawyer.city}, {lawyer.state} இல் அடிப்படையாக {lawyer.category} வழக்கறிஞர். உங்கள் பொது சுயவிவரம், தனிப்பட்ட
-              விவரங்கள், வழக்கு வரலாறு மற்றும் ஆலோசனை கோரிக்கைகளை ஒரே இடத்தில் வைத்திருக்கவும்.
-            </p>
-            <div className="lawyerBadges">
-              <span><MapPin size={17} /> {lawyer.district}</span>
-              <span><BriefcaseBusiness size={17} /> {lawyer.experience}</span>
-              <span><ShieldCheck size={17} /> சரிபார்க்கப்பட்ட டெமோ பட்டியல்</span>
-            </div>
+            <p>LawVoice வழக்கறிஞர் பணிப்பகம்</p>
+            <h1>வணக்கம், {lawyer.name}</h1>
           </div>
-          <div className="lawyerScore">
-            <strong>{filteredRequests.length}</strong>
-            <span>பார்க்க கூடிய கோரிக்கைகள்</span>
-            <p>மக்கள் பக்கத்தில் உள்ள வழக்கறிஞர் பிரிவிலிருந்து அனுப்பப்பட்ட கோரிக்கைகள் மதிப்பாய்வு, மீண்டும் அழைப்பு மற்றும் பின்தொடர்ச்சிக்கு இங்கே தோன்றும்.</p>
+          <div className="topbarActions">
+            <a className="quickCall" href={`tel:${lawyer.phone}`}><Phone size={17} /> அலுவலக அழைப்பு</a>
           </div>
-        </section>
+        </header>
 
-        <section className="lawyerStats">
-          <div className="stat"><strong>{requests.length}</strong><span>மொத்த கோரிக்கைகள்</span></div>
-          <div className="stat"><strong>{requests.filter((item) => item.urgency === 'High').length}</strong><span>அதிக முன்னுரிமை</span></div>
-          <div className="stat"><strong>{lawyer.category}</strong><span>முக்கிய நடைமுறை</span></div>
-          <div className="stat"><strong>{lawyer.city}</strong><span>சேவை நகரம்</span></div>
-        </section>
+        <div className="screen">
+          <section className="lawyerStats">
+            <div className="stat"><strong>{requests.length}</strong><span>மொத்த கோரிக்கைகள்</span></div>
+            <div className="stat"><strong>{requests.filter((item) => item.urgency === 'High').length}</strong><span>அதிக முன்னுரிமை</span></div>
+            <div className="stat"><strong>{lawyer.category}</strong><span>முக்கிய நடைமுறை</span></div>
+            <div className="stat"><strong>{lawyer.city}</strong><span>சேவை நகரம்</span></div>
+          </section>
 
-        <section className="lawyerSection">
-          <div className="sectionHead">
-            <div>
-              <span className="pill"><BriefcaseBusiness size={16} /> தனிப்பட்ட விவரங்கள்</span>
-              <h2>சுயவிவரத் தகவல்</h2>
-            </div>
-            <button className="primaryBtn" onClick={saveLawyer}><Save size={17} /> சுயவிவரம் சேமிக்கவும்</button>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginTop: '15px' }}>
-            
-            {/* Card 1: basic details */}
-            <div className="lawyerPanel" style={{ margin: 0 }}>
-              <h3 style={{ fontSize: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', marginBottom: '12px', color: '#2d3748' }}>அடிப்படைத் தகவல்கள்</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <label>வழக்கறிஞர் பெயர்<input value={lawyer.name} onChange={(event) => updateLawyer('name', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
-                <label>பார் பதிவு<input value={lawyer.barId} onChange={(event) => updateLawyer('barId', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
-                <label>தொலைபேசி<input value={lawyer.phone} onChange={(event) => updateLawyer('phone', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
-                <label>மின்னஞ்சல்<input value={lawyer.email} onChange={(event) => updateLawyer('email', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
-              </div>
-            </div>
-
-            {/* Card 2: professional info */}
-            <div className="lawyerPanel" style={{ margin: 0 }}>
-              <h3 style={{ fontSize: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', marginBottom: '12px', color: '#2d3748' }}>தொழில்முறை விவரங்கள்</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <label>நடைமுறை பகுதி
-                  <select value={lawyer.category} onChange={(event) => updateLawyer('category', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }}>
-                    {practiceAreas.map((area) => <option key={area}>{area}</option>)}
-                  </select>
-                </label>
-                <label>அனுபவம்<input value={lawyer.experience} onChange={(event) => updateLawyer('experience', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
-                <label>மொழிகள்<input value={lawyer.languages} onChange={(event) => updateLawyer('languages', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
-              </div>
-            </div>
-
-            {/* Card 3: office info */}
-            <div className="lawyerPanel" style={{ margin: 0 }}>
-              <h3 style={{ fontSize: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', marginBottom: '12px', color: '#2d3748' }}>அலுவலகம் மற்றும் இருப்பிடம்</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <label>அலுவலக முகவரி<input value={lawyer.office} onChange={(event) => updateLawyer('office', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
-                <label>நகரம்<input value={lawyer.city} onChange={(event) => updateLawyer('city', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
-                <label>மாவட்டம்<input value={lawyer.district} onChange={(event) => updateLawyer('district', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
-                <label>மாநிலம்<input value={lawyer.state} onChange={(event) => updateLawyer('state', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
-              </div>
-            </div>
-
-            {/* Card 4: consultations */}
-            <div className="lawyerPanel" style={{ margin: 0 }}>
-              <h3 style={{ fontSize: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', marginBottom: '12px', color: '#2d3748' }}>ஆலோசனை விவரங்கள்</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <label>ஆலோசனை முறை<input value={lawyer.consultationMode} onChange={(event) => updateLawyer('consultationMode', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
-                <label>கிடைக்கும் தன்மை<input value={lawyer.availability} onChange={(event) => updateLawyer('availability', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
-              </div>
-            </div>
-
-            {/* Card 5: bio (wide) */}
-            <div className="lawyerPanel" style={{ margin: 0, gridColumn: '1 / -1' }}>
-              <h3 style={{ fontSize: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', marginBottom: '12px', color: '#2d3748' }}>பொது வாழ்க்கைக்குறிப்பு</h3>
-              <label><textarea value={lawyer.bio} onChange={(event) => updateLawyer('bio', event.target.value)} style={{ width: '100%', minHeight: '100px', padding: '10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px', fontFamily: 'inherit' }} /></label>
-            </div>
-            
-          </div>
-          {saved && <p className="notice" style={{ marginTop: '15px' }}>{saved}</p>}
-        </section>
-
-        <section className="lawyerSection">
-          <div className="lawyerPanel">
-            <span className="pill"><FileCheck2 size={16} /> பொது வழக்கு வரலாறு</span>
-            <h2>கல்வி மற்றும் வழக்கு வரலாறு</h2>
-            <div className="formGrid">
-              <label>கல்வி<input value={lawyer.education} onChange={(event) => updateLawyer('education', event.target.value)} /></label>
-              <label>நீதிமன்ற நடைமுறை<input value={lawyer.courtPractice} onChange={(event) => updateLawyer('courtPractice', event.target.value)} /></label>
-              <label className="wideField">ஆலோசனை கட்டணம்<input value={lawyer.consultationFee} onChange={(event) => updateLawyer('consultationFee', event.target.value)} /></label>
-            </div>
-
-            <div className="caseHistorySection" style={{ marginTop: '20px' }}>
-              <h3 style={{ fontSize: '16px', marginBottom: '10px', color: '#2d3748' }}>வழக்கு வரலாறு</h3>
-              <div className="caseHistoryList" style={{ marginBottom: '15px' }}>
-                {(lawyer.caseHistory || []).map((caseItem, index) => (
-                  <div key={index} className="caseHistoryItem" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f5f7fb', borderRadius: '6px', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '14px', color: '#333' }}>{caseItem}</span>
-                    <button className="deleteBtn" onClick={() => deleteCase(index)} style={{ color: '#e53e3e', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
-                {(!lawyer.caseHistory || lawyer.caseHistory.length === 0) && (
-                  <p style={{ color: '#718096', fontStyle: 'italic', fontSize: '14px' }}>இன்னும் வழக்குகள் எதுவும் சேர்க்கப்படவில்லை.</p>
-                )}
-              </div>
-              <div className="addCaseBox" style={{ display: 'flex', gap: '10px' }}>
-                <input 
-                  type="text" 
-                  value={newCaseText} 
-                  onChange={(e) => setNewCaseText(e.target.value)} 
-                  placeholder="புதிய தீர்க்கப்பட்ட வழக்கு விவரங்களை உள்ளிடவும் (எ.கா: ரவி குமார் - நிலத் தகராறு)" 
-                  style={{ flex: 1, padding: '8px 12px', border: '1px solid #cbd5e0', borderRadius: '6px', fontSize: '14px' }} 
-                />
-                <button className="primaryBtn" onClick={addManualCase} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Plus size={16} /> சேர்க்க
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="lawyerSection">
-          <div className="lawyerPanel">
-            <span className="pill"><UsersRound size={16} /> பிற வழக்கறிஞர்கள்</span>
-            <h2>பதிவுசெய்யப்பட்ட பிற வழக்கறிஞர்கள்</h2>
-            <p className="sectionDesc" style={{ color: '#718096', fontSize: '14px', marginBottom: '15px' }}>
-              கணினியில் பதிவுசெய்யப்பட்ட பிற வழக்கறிஞர்களின் பட்டியல் மற்றும் விவரங்கள்:
-            </p>
-            <div className="otherLawyersGrid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
-              {otherLawyers.map((other) => (
-                <div key={other.id || other.name} className="otherLawyerCard" style={{ padding: '15px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#fff' }}>
-                  <h3 style={{ margin: '0 0 5px 0', fontSize: '16px', color: '#2d3748' }}>{other.name}</h3>
-                  <div style={{ fontSize: '13px', color: '#4a5568', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <span>வகை: <strong>{other.category}</strong></span>
-                    <span>நகரம்: <strong>{other.city}</strong></span>
-                    <span>அனுபவம்: <strong>{other.experience}</strong></span>
-                    <span>பார் ID: <strong>{other.barId}</strong></span>
-                  </div>
-                </div>
-              ))}
-              {otherLawyers.length === 0 && (
-                <p style={{ color: '#718096', fontStyle: 'italic', fontSize: '14px' }}>பிற வழக்கறிஞர்கள் யாரும் இன்னும் பதிவு செய்யப்படவில்லை.</p>
-              )}
-            </div>
-          </div>
-        </section>
-
-        <section className="lawyerSection">
-          <div className="sectionHead sectionTitle">
-            <div>
-              <span className="pill"><UsersRound size={16} /> கோரிக்கைகள்</span>
-              <h2>மக்களின் கோரிக்கைகள் மற்றும் பின்தொடர்ச்சி</h2>
-            </div>
-          </div>
-          <div className="requestWorkspace">
-            <div className="lawyerPanel enquiryPanel">
+          {activeTab === 'profile' && (
+            <section className="screen">
               <div className="sectionHead">
                 <div>
-                  <span className="pill"><UsersRound size={16} /> மக்களின் கோரிக்கைகள்</span>
-                  <h2>உள்வரும் ஆலோசனை கோரிக்கைகள்</h2>
+                  <span className="pill"><BriefcaseBusiness size={16} /> தனிப்பட்ட விவரங்கள்</span>
+                  <h2>சுயவிவரத் தகவல்</h2>
+                </div>
+                <button className="primaryBtn" onClick={saveLawyer}><Save size={17} /> சுயவிவரம் சேமிக்கவும்</button>
+              </div>
+
+              <div className="cardGrid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+                <div className="panel">
+                  <h3>அடிப்படைத் தகவல்கள்</h3>
+                  <label>
+                    வழக்கறிஞர் பெயர்
+                    <input value={lawyer.name} onChange={(event) => updateLawyer('name', event.target.value)} />
+                  </label>
+                  <label>
+                    பார் பதிவு
+                    <input value={lawyer.barId} onChange={(event) => updateLawyer('barId', event.target.value)} />
+                  </label>
+                  <label>
+                    தொலைபேசி
+                    <input value={lawyer.phone} onChange={(event) => updateLawyer('phone', event.target.value)} />
+                  </label>
+                  <label>
+                    மின்னஞ்சல்
+                    <input value={lawyer.email} onChange={(event) => updateLawyer('email', event.target.value)} />
+                  </label>
+                </div>
+
+                <div className="panel">
+                  <h3>தொழில்முறை விவரங்கள்</h3>
+                  <label>
+                    நடைமுறை பகுதி
+                    <select value={lawyer.category} onChange={(event) => updateLawyer('category', event.target.value)}>
+                      {practiceAreas.map((area) => <option key={area}>{area}</option>)}
+                    </select>
+                  </label>
+                  <label>
+                    அனுபவம்
+                    <input value={lawyer.experience} onChange={(event) => updateLawyer('experience', event.target.value)} />
+                  </label>
+                  <label>
+                    மொழிகள்
+                    <input value={lawyer.languages} onChange={(event) => updateLawyer('languages', event.target.value)} />
+                  </label>
+                </div>
+
+                <div className="panel">
+                  <h3>அலுவலகம் மற்றும் இருப்பிடம்</h3>
+                  <label>
+                    அலுவலக முகவரி
+                    <input value={lawyer.office} onChange={(event) => updateLawyer('office', event.target.value)} />
+                  </label>
+                  <label>
+                    நகரம்
+                    <input value={lawyer.city} onChange={(event) => updateLawyer('city', event.target.value)} />
+                  </label>
+                  <label>
+                    மாவட்டம்
+                    <input value={lawyer.district} onChange={(event) => updateLawyer('district', event.target.value)} />
+                  </label>
+                  <label>
+                    மாநிலம்
+                    <input value={lawyer.state} onChange={(event) => updateLawyer('state', event.target.value)} />
+                  </label>
+                </div>
+
+                <div className="panel">
+                  <h3>ஆலோசனை விவரங்கள்</h3>
+                  <label>
+                    ஆலோசனை முறை
+                    <input value={lawyer.consultationMode} onChange={(event) => updateLawyer('consultationMode', event.target.value)} />
+                  </label>
+                  <label>
+                    கிடைக்கும் தன்மை
+                    <input value={lawyer.availability} onChange={(event) => updateLawyer('availability', event.target.value)} />
+                  </label>
+                </div>
+
+                <div className="panel" style={{ gridColumn: '1 / -1' }}>
+                  <h3>பொது வாழ்க்கைக்குறிப்பு</h3>
+                  <label>
+                    சுயவிவரக் குறிப்பு
+                    <textarea value={lawyer.bio} onChange={(event) => updateLawyer('bio', event.target.value)} />
+                  </label>
                 </div>
               </div>
-              <div className="filterRow">
-                <label className="searchField">
-                  <Search size={18} />
-                  <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="பெயர், சிக்கல், நகரம், நிலை தேடவும்" />
-                </label>
-                <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
-                  <option>அனைத்தும்</option>
-                  {practiceAreas.map((area) => <option key={area}>{area}</option>)}
-                </select>
-              </div>
-              <div className="clientList">
-                {filteredRequests.map((request) => (
-                  <button
-                    className={activeRequest?.id === request.id ? 'clientRow active' : 'clientRow'}
-                    key={request.id}
-                    onClick={() => setActiveRequest(request)}
-                  >
-                    <span>
-                      <strong>{request.name}</strong>
-                      <small>{request.category} | {request.city} | {request.status}</small>
-                    </span>
-                    <em>{request.urgency}</em>
-                  </button>
-                ))}
-                {filteredRequests.length === 0 && (
-                  <p style={{ color: '#718096', fontStyle: 'italic', fontSize: '14px', padding: '15px' }}>வழக்கு கோரிக்கைகள் எதுவும் இல்லை.</p>
-                )}
-              </div>
-            </div>
+              {saved && <p className="notice">{saved}</p>}
+            </section>
+          )}
 
-            <div className="lawyerPanel">
-              <span className="pill"><FileCheck2 size={16} /> கோரிக்கை விவரங்கள்</span>
-              {activeRequest ? (
-                <>
-                  <h2>{activeRequest.name}</h2>
-                  <div className="caseMeta">
-                    <span>சிக்கல் <strong>{activeRequest.issue}</strong></span>
-                    <span>வகை <strong>{activeRequest.category}</strong></span>
-                    <span>தொலைபேசி <strong>{activeRequest.phone}</strong></span>
-                  </div>
-                  <p className="enquirySummary">பெறப்பட்டது {activeRequest.time}. தற்போதைய நிலை: {activeRequest.status}.</p>
-                  <label>பதிலளிப்பு குறிப்பு<textarea value={reply} onChange={(event) => setReply(event.target.value)} placeholder="தொழில்முறை பதிலளிப்பு அல்லது ஆவண சரிபாரணை எழுதவும்." /></label>
-                  <div className="toolbar" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '15px' }}>
-                    <button className="primaryBtn" onClick={() => updateRequestStatus('Replied')}><MessageSquareText size={17} /> பதிலளிக்கப்பட்டது</button>
-                    <button className="secondaryBtn" onClick={() => updateRequestStatus('Consultation scheduled')}><CalendarCheck size={17} /> அட்டவணை</button>
-                    <button className="primaryBtn" style={{ backgroundColor: '#2b6cb0' }} onClick={() => updateRequestStatus('முடிந்தது')}><FileCheck2 size={17} /> முடிந்தது (Solved)</button>
-                  </div>
-                </>
-              ) : (
-                <p>கோரிக்கை தேர்ந்தெடுக்கப்படவில்லை.</p>
-              )}
-            </div>
-          </div>
-        </section>
-
-        <section className="lawyerSection">
-          <div className="lawyerPanel">
-            <span className="pill"><CalendarCheck size={16} /> இன்று</span>
-            <h2>ஆலோசனைகள்</h2>
-            <div className="timeline">
-              {schedule.map(([time, name, note]) => (
-                <div key={`${time}-${name}`}>
-                  <strong>{time}</strong>
-                  <span>{name}</span>
-                  <small>{note}</small>
+          {activeTab === 'cases' && (
+            <section className="screen">
+              <div className="panel">
+                <span className="pill"><FileCheck2 size={16} /> பொது வழக்கு வரலாறு</span>
+                <h2>கல்வி மற்றும் வழக்கு வரலாறு</h2>
+                <div className="formGrid">
+                  <label>
+                    கல்வி
+                    <input value={lawyer.education} onChange={(event) => updateLawyer('education', event.target.value)} />
+                  </label>
+                  <label>
+                    நீதிமன்ற நடைமுறை
+                    <input value={lawyer.courtPractice} onChange={(event) => updateLawyer('courtPractice', event.target.value)} />
+                  </label>
+                  <label className="wideField">
+                    ஆலோசனை கட்டணம்
+                    <input value={lawyer.consultationFee} onChange={(event) => updateLawyer('consultationFee', event.target.value)} />
+                  </label>
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
+
+                <div style={{ marginTop: '20px' }}>
+                  <h3 style={{ fontSize: '16px', marginBottom: '10px', color: '#2d3748' }}>வழக்கு வரலாறு</h3>
+                  <div className="caseHistoryList" style={{ marginBottom: '15px' }}>
+                    {(lawyer.caseHistory || []).map((caseItem, index) => (
+                      <div key={index} className="caseHistoryItem" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f5f7fb', borderRadius: '6px', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '14px', color: '#333' }}>{caseItem}</span>
+                        <button className="deleteBtn" onClick={() => deleteCase(index)} style={{ color: '#e53e3e', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                    {(!lawyer.caseHistory || lawyer.caseHistory.length === 0) && (
+                      <p style={{ color: '#718096', fontStyle: 'italic', fontSize: '14px' }}>இன்னும் வழக்குகள் எதுவும் சேர்க்கப்படவில்லை.</p>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <input 
+                      type="text" 
+                      value={newCaseText} 
+                      onChange={(e) => setNewCaseText(e.target.value)} 
+                      placeholder="புதிய தீர்க்கப்பட்ட வழக்கு விவரங்களை உள்ளிடவும் (எ.கா: ரவி குமார் - நிலத் தகராறு)" 
+                    />
+                    <button className="primaryBtn" onClick={addManualCase} style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '8px' }}>
+                      <Plus size={16} /> சேர்க்க
+                    </button>
+                  </div>
+                </div>
+                
+                <div style={{ marginTop: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '15px' }}>
+                  <button className="primaryBtn" onClick={saveLawyer}><Save size={17} /> வழக்கு வரலாறு சேமிக்கவும்</button>
+                </div>
+              </div>
+              {saved && <p className="notice">{saved}</p>}
+            </section>
+          )}
+
+          {activeTab === 'requests' && (
+            <section className="screen">
+              <div className="sectionHead">
+                <div>
+                  <span className="pill"><UsersRound size={16} /> கோரிக்கைகள்</span>
+                  <h2>மக்களின் கோரிக்கைகள் மற்றும் பின்தொடர்ச்சி</h2>
+                </div>
+              </div>
+              <div className="requestWorkspace">
+                <div className="panel enquiryPanel">
+                  <div className="sectionHead">
+                    <div>
+                      <span className="pill"><UsersRound size={16} /> மக்களின் கோரிக்கைகள்</span>
+                      <h2>உள்வரும் ஆலோசனை கோரிக்கைகள்</h2>
+                    </div>
+                  </div>
+                  <div className="filterRow">
+                    <label className="searchField">
+                      <Search size={18} />
+                      <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="பெயர், சிக்கல், நகரம், நிலை தேடவும்" />
+                    </label>
+                    <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
+                      <option>அனைத்தும்</option>
+                      {practiceAreas.map((area) => <option key={area}>{area}</option>)}
+                    </select>
+                  </div>
+                  <div className="clientList">
+                    {filteredRequests.map((request) => (
+                      <button
+                        className={activeRequest?.id === request.id ? 'clientRow active' : 'clientRow'}
+                        key={request.id}
+                        onClick={() => setActiveRequest(request)}
+                      >
+                        <span>
+                          <strong>{request.name}</strong>
+                          <small>{request.category} | {request.city} | {request.status}</small>
+                        </span>
+                        <em>{request.urgency}</em>
+                      </button>
+                    ))}
+                    {filteredRequests.length === 0 && (
+                      <p style={{ color: '#718096', fontStyle: 'italic', fontSize: '14px', padding: '15px' }}>வழக்கு கோரிக்கைகள் எதுவும் இல்லை.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="panel">
+                  <span className="pill"><FileCheck2 size={16} /> கோரிக்கை விவரங்கள்</span>
+                  {activeRequest ? (
+                    <>
+                      <h2>{activeRequest.name}</h2>
+                      <div className="caseMeta">
+                        <span>சிக்கல் <strong>{activeRequest.issue}</strong></span>
+                        <span>வகை <strong>{activeRequest.category}</strong></span>
+                        <span>தொலைபேசி <strong>{activeRequest.phone}</strong></span>
+                      </div>
+                      <p className="enquirySummary">பெறப்பட்டது {activeRequest.time}. தற்போதைய நிலை: {activeRequest.status}.</p>
+                      <label>
+                        பதிலளிப்பு குறிப்பு
+                        <textarea value={reply} onChange={(event) => setReply(event.target.value)} placeholder="தொழில்முறை பதிலளிப்பு அல்லது ஆவண சரிபாரணை எழுதவும்." />
+                      </label>
+                      <div className="toolbar">
+                        <button className="primaryBtn" onClick={() => updateRequestStatus('Replied')}><MessageSquareText size={17} /> பதிலளிக்கப்பட்டது</button>
+                        <button className="secondaryBtn" onClick={() => updateRequestStatus('Consultation scheduled')}><CalendarCheck size={17} /> அட்டவணை</button>
+                        <button className="primaryBtn" style={{ backgroundColor: '#2b6cb0' }} onClick={() => updateRequestStatus('முடிந்தது')}><FileCheck2 size={17} /> முடிந்தது (Solved)</button>
+                      </div>
+                    </>
+                  ) : (
+                    <p>கோரிக்கை தேர்ந்தெடுக்கப்படவில்லை.</p>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'other' && (
+            <section className="screen">
+              <div className="panel">
+                <span className="pill"><UsersRound size={16} /> பிற வழக்கறிஞர்கள்</span>
+                <h2>பதிவுசெய்யப்பட்ட பிற வழக்கறிஞர்கள்</h2>
+                <p style={{ color: '#718096', fontSize: '14px', marginBottom: '15px' }}>
+                  கணினியில் பதிவுசெய்யப்பட்ட பிற வழக்கறிஞர்களின் பட்டியல் மற்றும் விவரங்கள்:
+                </p>
+                <div className="otherLawyersGrid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
+                  {otherLawyers.map((other) => (
+                    <div key={other.id || other.name} className="panel" style={{ padding: '15px' }}>
+                      <h3 style={{ margin: '0 0 5px 0', fontSize: '16px' }}>{other.name}</h3>
+                      <div style={{ fontSize: '13px', color: '#4a5568', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span>வகை: <strong>{other.category}</strong></span>
+                        <span>நகரம்: <strong>{other.city}</strong></span>
+                        <span>அனுபவம்: <strong>{other.experience}</strong></span>
+                        <span>பார் ID: <strong>{other.barId}</strong></span>
+                      </div>
+                    </div>
+                  ))}
+                  {otherLawyers.length === 0 && (
+                    <p style={{ color: '#718096', fontStyle: 'italic', fontSize: '14px' }}>பிற வழக்கறிஞர்கள் யாரும் இன்னும் பதிவு செய்யப்படவில்லை.</p>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'schedule' && (
+            <section className="screen">
+              <div className="panel">
+                <span className="pill"><CalendarCheck size={16} /> இன்று</span>
+                <h2>ஆலோசனைகள்</h2>
+                <div className="timeline">
+                  {schedule.map(([time, name, note]) => (
+                    <div key={`${time}-${name}`}>
+                      <strong>{time}</strong>
+                      <span>{name}</span>
+                      <small>{note}</small>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
+
+        </div>
       </main>
     </div>
   );

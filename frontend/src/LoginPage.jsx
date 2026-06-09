@@ -81,6 +81,20 @@ const LoginPage = () => {
     setError('');
     try {
       if (mode === 'register') {
+        const pwd = form.password;
+        if (pwd.length < 8) {
+          throw new Error('கடவுச்சொல் குறைந்தது 8 எழுத்துக்களைக் கொண்டிருக்க வேண்டும்.');
+        }
+        if (!/[a-zA-Z]/.test(pwd)) {
+          throw new Error('கடவுச்சொல் குறைந்தது ஒரு ஆங்கில எழுத்தைக் கொண்டிருக்க வேண்டும்.');
+        }
+        if (!/[0-9]/.test(pwd)) {
+          throw new Error('கடவுச்சொல் குறைந்தது ஒரு எண்ணைக் கொண்டிருக்க வேண்டும்.');
+        }
+        if (!/[!@#$%^&*(),.?\":{}|<>]/.test(pwd)) {
+          throw new Error('கடவுச்சொல் குறைந்தது ஒரு சிறப்பு குறியீட்டைக் கொண்டிருக்க வேண்டும் (எ.கா: @, #, $, %).');
+        }
+
         const payload = {
           role,
           name: form.name.trim(),
@@ -200,7 +214,12 @@ const LoginPage = () => {
             </label>
           )}
           <label>கடவுச்சொல்
-            <input type="password" value={form.password} onChange={(e) => update('password', e.target.value)} required minLength={6} autoComplete={isRegister ? 'new-password' : 'current-password'} />
+            <input type="password" value={form.password} onChange={(e) => update('password', e.target.value)} required minLength={8} autoComplete={isRegister ? 'new-password' : 'current-password'} />
+            {isRegister && (
+              <span style={{ fontSize: '12px', marginTop: '4px', color: 'var(--muted)', fontWeight: 'normal' }}>
+                * கடவுச்சொல் குறைந்தது 8 எழுத்துக்கள், 1 ஆங்கில எழுத்து, 1 எண் மற்றும் 1 சிறப்பு குறியீடு (@, #, $, % போன்றவை) கொண்டிருக்க வேண்டும்.
+              </span>
+            )}
           </label>
 
           {isRegister && (

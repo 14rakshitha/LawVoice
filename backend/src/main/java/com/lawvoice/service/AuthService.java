@@ -71,6 +71,14 @@ public class AuthService {
         if (users.existsByName(request.name().trim())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "இந்த பெயர் ஏற்கனவே பதிவு செய்யப்பட்டுள்ளது.");
         }
+        String pwd = request.password();
+        if (pwd == null || pwd.length() < 8 || 
+            !pwd.matches(".*[a-zA-Z].*") || 
+            !pwd.matches(".*[0-9].*") || 
+            !pwd.matches(".*[!@#$%^&*(),.?\":{}|<>].*")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "கடவுச்சொல் குறைந்தது 8 எழுத்துக்கள், ஒரு ஆங்கில எழுத்து, ஒரு எண் மற்றும் ஒரு சிறப்பு குறியீட்டைக் கொண்டிருக்க வேண்டும்.");
+        }
         UserAccount account = new UserAccount();
         account.setRole(role);
         account.setName(request.name().trim());
