@@ -167,14 +167,14 @@ const aiUnavailableAnswer = {
 };
 
 function isBadBackendTamil(answer) {
+  // Only flag OBVIOUS Latin-1 mis-encoding artifacts (à®, Ã®, Â«)
+  // Proper Tamil Unicode (\u0B80-\u0BFF) will NOT match these
   const visibleText = [
-    answer.topic,
-    answer.summary,
-    ...(answer.steps || []),
-    ...(answer.rights || []),
-    ...(answer.nextActions || [])
+    answer.topic || '',
+    answer.summary || ''
   ].join(' ');
-  return /à|Ã|Â/.test(visibleText);
+  // Must have BOTH the Latin prefix (à/Ã) AND a following non-ASCII char to be flagged
+  return /à[\x80-\xBF]|Ã[\x80-\xBF]/.test(visibleText);
 }
 
 function App() {
@@ -305,18 +305,14 @@ function Assistant() {
       }
       const res = await fetch(`${API}/legal/ask`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: JSON.stringify({ userId: USER_ID, query, language: 'ta' })
       });
       if (!res.ok) {
-        throw new Error('Request failed');
+        throw new Error('Request failed: ' + res.status);
       }
-      const data = normalizeAnswer(await res.json(), query);
-      if (isBadBackendTamil(data)) {
-        setAnswer(buildTamilLegalAnswer(query));
-        setMessage('Backend பழைய/கேடான பதில் அனுப்புகிறது. Backend-ஐ புதிய code-உடன் restart செய்து Sarvam key set செய்யுங்கள்.');
-        return;
-      }
+      const json = await res.json();
+      const data = normalizeAnswer(json, query);
       setAnswer(data);
       saveLocal(query, data.summary);
     } catch {
@@ -884,20 +880,22 @@ function readHistory() {
 }
 
 function normalizeAnswer(data, query = '') {
-  const localAnswer = buildTamilLegalAnswer(query);
-  const answer = {
-    topic: data?.topic || localAnswer.topic,
-    summary: data?.summary || localAnswer.summary,
-    steps: Array.isArray(data?.steps) ? data.steps : localAnswer.steps,
-    rights: Array.isArray(data?.rights) ? data.rights : localAnswer.rights,
-    nextActions: Array.isArray(data?.nextActions) ? data.nextActions : localAnswer.nextActions,
-    category: data?.category || localAnswer.category,
-    suggestedLawyers: Array.isArray(data?.suggestedLawyers) && data.suggestedLawyers.length > 0 ? data.suggestedLawyers : localAnswer.suggestedLawyers,
-    sources: Array.isArray(data?.sources) ? data.sources : [],
-    disclaimer: data?.disclaimer || localAnswer.disclaimer
-  };
-  const visibleText = [answer.topic, answer.summary, ...answer.steps, ...answer.rights, ...answer.nextActions, answer.disclaimer].join(' ');
-  return /à|Ã|Â/.test(visibleText) ? aiUnavailableAnswer : answer;
+  // If Sarvam returned a proper response with topic+summary, use it directly
+  if (data?.topic && data?.summary && data.summary.length > 20) {
+    return {
+      topic: data.topic,
+      summary: data.summary,
+      steps: Array.isArray(data.steps) && data.steps.length > 0 ? data.steps : [],
+      rights: Array.isArray(data.rights) && data.rights.length > 0 ? data.rights : [],
+      nextActions: Array.isArray(data.nextActions) && data.nextActions.length > 0 ? data.nextActions : [],
+      category: data.category || 'General',
+      suggestedLawyers: Array.isArray(data.suggestedLawyers) ? data.suggestedLawyers : [],
+      sources: Array.isArray(data.sources) ? data.sources : [],
+      disclaimer: data.disclaimer || 'இது பொதுவான சட்ட விழிப்புணர்வு மட்டுமே; குறிப்பிட்ட வழக்குக்கு வழக்கறிஞரிடம் ஆலோசனை பெறுங்கள்.'
+    };
+  }
+  // Fallback to local Tamil classifier if Sarvam gave empty/invalid response
+  return buildTamilLegalAnswer(query);
 }
 
 createRoot(document.getElementById('root')).render(<App />);

@@ -117,16 +117,21 @@ public class LegalAssistantService {
                 }
                 """;
 
-        Map<String, Object> payload = Map.of(
-                "model", sarvamModel,
-                "temperature", 0.05,
-                "max_tokens", 1600,
-                "messages", List.of(
-                        Map.of("role", "system", "content", systemPrompt),
-                        Map.of("role", "user", "content", "User legal question (Tamil answer only): " + request.query()),
-                        Map.of("role", "user", "content", pdfContext)
-                )
-        );
+        // Build user message — combine query + PDF context in one message (Sarvam rejects empty content)
+        String userContent = "User legal question (Tamil answer only): " + request.query();
+        if (!pdfContext.isBlank()) {
+            userContent = userContent + "\n\n" + pdfContext;
+        }
+
+        List<Map<String, Object>> messages = new ArrayList<>();
+        messages.add(Map.of("role", "system", "content", systemPrompt));
+        messages.add(Map.of("role", "user", "content", userContent));
+
+        Map<String, Object> payload = new java.util.LinkedHashMap<>();
+        payload.put("model", sarvamModel);
+        payload.put("temperature", 0.05);
+        payload.put("max_tokens", 1600);
+        payload.put("messages", messages);
 
         try {
             HttpRequest httpRequest = HttpRequest.newBuilder()
@@ -138,7 +143,7 @@ public class LegalAssistantService {
                     .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)))
                     .build();
 
-            HttpResponse<String> httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString(java.nio.charset.StandardCharsets.UTF_8));
             if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
                 lastSarvamError = "Sarvam API returned HTTP " + httpResponse.statusCode() + ": " + trimForUi(httpResponse.body());
                 return new SarvamCall(null, lastSarvamError);

@@ -48,5 +48,33 @@ function Ensure-Maven {
 
 $mvn = Ensure-Maven
 Set-Location $Root
-Write-Host "Starting LawVoice backend on http://localhost:8081 ..." -ForegroundColor Green
+
+# ── Load .env file (look in backend dir first, then project root) ──────────────
+$EnvFile = Join-Path $Root ".env"
+if (-not (Test-Path $EnvFile)) {
+    $EnvFile = Join-Path (Split-Path $Root -Parent) ".env"
+}
+if (Test-Path $EnvFile) {
+    Write-Host "Loading environment from $EnvFile ..." -ForegroundColor Cyan
+    Get-Content $EnvFile | ForEach-Object {
+        $line = $_.Trim()
+        if ($line -and -not $line.StartsWith("#")) {
+            $parts = $line -split "=", 2
+            if ($parts.Length -eq 2) {
+                $key   = $parts[0].Trim()
+                $value = $parts[1].Trim()
+                # Only set if not already set in the environment
+                if (-not [System.Environment]::GetEnvironmentVariable($key)) {
+                    [System.Environment]::SetEnvironmentVariable($key, $value, "Process")
+                    Write-Host "  Set $key" -ForegroundColor DarkGray
+                }
+            }
+        }
+    }
+} else {
+    Write-Host "No .env file found. Create $EnvFile with SARVAM_API_KEY=<your_key>" -ForegroundColor Yellow
+}
+
+Write-Host "Starting LawVoice backend on http://localhost:8082 ..." -ForegroundColor Green
+$env:MAVEN_OPTS = "-Dfile.encoding=UTF-8"
 & $mvn spring-boot:run @args
