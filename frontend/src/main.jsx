@@ -7,6 +7,7 @@ import {
   Bot,
   ChevronRight,
   FileText,
+  FileCheck2,
   History,
   Home,
   MapPin,
@@ -35,6 +36,7 @@ const navItems = [
   { path: `${USER_BASE}/fir`, label: 'முதல் தகவல் அறிக்கை வழிகாட்டி', icon: FileText },
   { path: `${USER_BASE}/knowledge`, label: 'சட்ட நூலகம்', icon: BookOpen },
   { path: `${USER_BASE}/lawyers`, label: 'வழக்கறிஞர்கள்', icon: MapPin },
+  { path: `${USER_BASE}/my-requests`, label: 'கோரிக்கை நிலை', icon: FileCheck2 },
   { path: `${USER_BASE}/emergency`, label: 'அவசர உதவி', icon: AlertTriangle },
   { path: `${USER_BASE}/history`, label: 'வரலாறு', icon: History },
   { path: `${USER_BASE}/profile`, label: 'சுயவிவரம்', icon: User },
@@ -234,6 +236,7 @@ function UserApp() {
           <Route path="/fir" element={<FirPage />} />
           <Route path="/knowledge" element={<Knowledge />} />
           <Route path="/lawyers" element={<PeopleLawyers />} />
+          <Route path="/my-requests" element={<MyRequests />} />
           <Route path="/emergency" element={<Emergency />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/profile" element={<Profile />} />
@@ -872,6 +875,57 @@ function normalizeAnswer(data, query = '') {
   }
   // Fallback to local Tamil classifier if Sarvam gave empty/invalid response
   return buildTamilLegalAnswer(query);
+}
+
+function MyRequests() {
+  const [myRequests, setMyRequests] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('lawvoice-requests') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  return (
+    <section className="screen">
+      <div className="sectionHead">
+        <div>
+          <span className="pill"><FileCheck2 size={16} /> கோரிக்கை நிலை</span>
+          <h2>எனது வழக்கறிஞர் கோரிக்கைகள்</h2>
+        </div>
+      </div>
+      <div className="requestsList" style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
+        {myRequests.map((req) => (
+          <div key={req.id} className="lawyerCard" style={{ padding: '20px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#fff' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', color: '#2d3748' }}>
+                வழக்கறிஞர்: {req.lawyerName || 'சரிபார்க்கப்பட்ட வழக்கறிஞர்'}
+              </h3>
+              <span className="pill" style={{ 
+                backgroundColor: req.status === 'முடிந்தது' ? '#c6f6d5' : req.status === 'New request' ? '#feebc8' : '#ebf8ff',
+                color: req.status === 'முடிந்தது' ? '#22543d' : req.status === 'New request' ? '#744210' : '#2b6cb0',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '12px',
+                fontWeight: 'bold'
+              }}>
+                {req.status === 'New request' ? 'அனுப்பப்பட்டது' : req.status}
+              </span>
+            </div>
+            <div style={{ fontSize: '14px', color: '#4a5568', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span>வழக்கு விவரம்: <strong>{req.issue}</strong></span>
+              <span>வகை: <strong>{req.category}</strong></span>
+              <span>அனுப்பிய நேரம்: <strong>{req.time}</strong></span>
+              <span>கோரிக்கை ID: <strong>{req.id}</strong></span>
+            </div>
+          </div>
+        ))}
+        {myRequests.length === 0 && (
+          <p style={{ color: '#718096', fontStyle: 'italic', fontSize: '15px' }}>கோரிக்கைகள் எதுவும் இன்னும் அனுப்பப்படவில்லை.</p>
+        )}
+      </div>
+    </section>
+  );
 }
 
 createRoot(document.getElementById('root')).render(<App />);

@@ -256,33 +256,69 @@ const LawyerProfile = () => {
         </section>
 
         <section className="lawyerSection">
-          <div className="lawyerPanel">
-            <div className="sectionHead">
-              <div>
-                <span className="pill"><BriefcaseBusiness size={16} /> தனிப்பட்ட விவரங்கள்</span>
-                <h2>சுயவிவரத் தகவல்</h2>
-              </div>
-              <button className="primaryBtn" onClick={saveLawyer}><Save size={17} /> சுயவிவரம் சேமிக்கவும்</button>
+          <div className="sectionHead">
+            <div>
+              <span className="pill"><BriefcaseBusiness size={16} /> தனிப்பட்ட விவரங்கள்</span>
+              <h2>சுயவிவரத் தகவல்</h2>
             </div>
-            <div className="formGrid">
-              <label>வழக்கறிஞர் பெயர்<input value={lawyer.name} onChange={(event) => updateLawyer('name', event.target.value)} /></label>
-              <label>பார் பதிவு<input value={lawyer.barId} onChange={(event) => updateLawyer('barId', event.target.value)} /></label>
-              <label>தொலைபேசி<input value={lawyer.phone} onChange={(event) => updateLawyer('phone', event.target.value)} /></label>
-              <label>மின்னஞ்சல்<input value={lawyer.email} onChange={(event) => updateLawyer('email', event.target.value)} /></label>
-              <label>நடைமுறை பகுதி<select value={lawyer.category} onChange={(event) => updateLawyer('category', event.target.value)}>{practiceAreas.map((area) => <option key={area}>{area}</option>)}</select></label>
-              <label>அபிஜ்ஞதை<input value={lawyer.experience} onChange={(event) => updateLawyer('experience', event.target.value)} /></label>
-              <label className="wideField">அலுவலக முகவரி<input value={lawyer.office} onChange={(event) => updateLawyer('office', event.target.value)} /></label>
-              <label>நகரம்<input value={lawyer.city} onChange={(event) => updateLawyer('city', event.target.value)} /></label>
-              <label>மாவட்டம்<input value={lawyer.district} onChange={(event) => updateLawyer('district', event.target.value)} /></label>
-              <label>மாநிலம்<input value={lawyer.state} onChange={(event) => updateLawyer('state', event.target.value)} /></label>
-              <label>மொழிகள்<input value={lawyer.languages} onChange={(event) => updateLawyer('languages', event.target.value)} /></label>
-              <label>ஆலோசனை முறை<input value={lawyer.consultationMode} onChange={(event) => updateLawyer('consultationMode', event.target.value)} /></label>
-              <label>கிடைக்கும் தன்மை<input value={lawyer.availability} onChange={(event) => updateLawyer('availability', event.target.value)} /></label>
-              <label className="wideField">பொது வாழ்க்கைக்குறிப்பு<textarea value={lawyer.bio} onChange={(event) => updateLawyer('bio', event.target.value)} /></label>
-            </div>
-            {saved && <p className="notice">{saved}</p>}
+            <button className="primaryBtn" onClick={saveLawyer}><Save size={17} /> சுயவிவரம் சேமிக்கவும்</button>
           </div>
 
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginTop: '15px' }}>
+            
+            {/* Card 1: basic details */}
+            <div className="lawyerPanel" style={{ margin: 0 }}>
+              <h3 style={{ fontSize: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', marginBottom: '12px', color: '#2d3748' }}>அடிப்படைத் தகவல்கள்</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <label>வழக்கறிஞர் பெயர்<input value={lawyer.name} onChange={(event) => updateLawyer('name', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
+                <label>பார் பதிவு<input value={lawyer.barId} onChange={(event) => updateLawyer('barId', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
+                <label>தொலைபேசி<input value={lawyer.phone} onChange={(event) => updateLawyer('phone', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
+                <label>மின்னஞ்சல்<input value={lawyer.email} onChange={(event) => updateLawyer('email', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
+              </div>
+            </div>
+
+            {/* Card 2: professional info */}
+            <div className="lawyerPanel" style={{ margin: 0 }}>
+              <h3 style={{ fontSize: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', marginBottom: '12px', color: '#2d3748' }}>தொழில்முறை விவரங்கள்</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <label>நடைமுறை பகுதி
+                  <select value={lawyer.category} onChange={(event) => updateLawyer('category', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }}>
+                    {practiceAreas.map((area) => <option key={area}>{area}</option>)}
+                  </select>
+                </label>
+                <label>அனுபவம்<input value={lawyer.experience} onChange={(event) => updateLawyer('experience', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
+                <label>மொழிகள்<input value={lawyer.languages} onChange={(event) => updateLawyer('languages', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
+              </div>
+            </div>
+
+            {/* Card 3: office info */}
+            <div className="lawyerPanel" style={{ margin: 0 }}>
+              <h3 style={{ fontSize: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', marginBottom: '12px', color: '#2d3748' }}>அலுவலகம் மற்றும் இருப்பிடம்</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <label>அலுவலக முகவரி<input value={lawyer.office} onChange={(event) => updateLawyer('office', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
+                <label>நகரம்<input value={lawyer.city} onChange={(event) => updateLawyer('city', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
+                <label>மாவட்டம்<input value={lawyer.district} onChange={(event) => updateLawyer('district', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
+                <label>மாநிலம்<input value={lawyer.state} onChange={(event) => updateLawyer('state', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
+              </div>
+            </div>
+
+            {/* Card 4: consultations */}
+            <div className="lawyerPanel" style={{ margin: 0 }}>
+              <h3 style={{ fontSize: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', marginBottom: '12px', color: '#2d3748' }}>ஆலோசனை விவரங்கள்</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <label>ஆலோசனை முறை<input value={lawyer.consultationMode} onChange={(event) => updateLawyer('consultationMode', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
+                <label>கிடைக்கும் தன்மை<input value={lawyer.availability} onChange={(event) => updateLawyer('availability', event.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px' }} /></label>
+              </div>
+            </div>
+
+            {/* Card 5: bio (wide) */}
+            <div className="lawyerPanel" style={{ margin: 0, gridColumn: '1 / -1' }}>
+              <h3 style={{ fontSize: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', marginBottom: '12px', color: '#2d3748' }}>பொது வாழ்க்கைக்குறிப்பு</h3>
+              <label><textarea value={lawyer.bio} onChange={(event) => updateLawyer('bio', event.target.value)} style={{ width: '100%', minHeight: '100px', padding: '10px', border: '1px solid #cbd5e0', borderRadius: '6px', marginTop: '4px', fontFamily: 'inherit' }} /></label>
+            </div>
+            
+          </div>
+          {saved && <p className="notice" style={{ marginTop: '15px' }}>{saved}</p>}
         </section>
 
         <section className="lawyerSection">

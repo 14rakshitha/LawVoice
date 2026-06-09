@@ -8,6 +8,7 @@ const PeopleLawyers = () => {
   const [locationMessage, setLocationMessage] = useState('');
   const [expanded, setExpanded] = useState('');
   const [requestMessage, setRequestMessage] = useState('');
+  const [sentStatus, setSentStatus] = useState({});
   const [requestForm, setRequestForm] = useState(() => {
     try {
       const session = JSON.parse(localStorage.getItem('lawvoice-session')) || {};
@@ -87,6 +88,7 @@ const PeopleLawyers = () => {
     const request = {
       id: `REQ-${Date.now().toString().slice(-5)}`,
       lawyerId: lawyer.id,
+      lawyerName: lawyer.name,
       name: requestForm.name.trim(),
       phone: requestForm.phone.trim(),
       issue: requestForm.issue.trim(),
@@ -98,6 +100,12 @@ const PeopleLawyers = () => {
     };
     const previous = JSON.parse(localStorage.getItem('lawvoice-requests') || '[]');
     localStorage.setItem('lawvoice-requests', JSON.stringify([request, ...previous]));
+    
+    setSentStatus((prev) => ({
+      ...prev,
+      [lawyer.id]: `${lawyer.name} அவர்களுக்கு கோரிக்கை வெற்றிகரமாக அனுப்பப்பட்டது! இது வழக்கறிஞரின் பணிப்பகத்தில் மற்றும் உங்கள் 'கோரிக்கை நிலை' பக்கத்தில் தோன்றும்.`
+    }));
+    
     setRequestMessage(`${lawyer.name} க்கு கோரிக்கை அனுப்பப்பட்டது. இது வழக்கறிஞர் சுயவிவரத்தில் தோன்றும்.`);
     setRequestForm((current) => ({ ...current, issue: '' }));
   };
@@ -162,6 +170,11 @@ const PeopleLawyers = () => {
                       <button className="primaryBtn" onClick={() => sendRequest(lawyer)}><Send size={16} /> கோரிக்கை அனுப்பு</button>
                       <a className="secondaryBtn" href={`tel:${lawyer.phone}`}><Phone size={16} /> அழை</a>
                     </div>
+                    {sentStatus[lawyer.id] && (
+                      <p className="notice" style={{ color: '#2c5282', backgroundColor: '#ebf8ff', padding: '10px', borderRadius: '6px', marginTop: '12px', fontSize: '14px', borderLeft: '4px solid #3182ce' }}>
+                        {sentStatus[lawyer.id]}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
