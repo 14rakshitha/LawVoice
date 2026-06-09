@@ -6,6 +6,7 @@ import com.lawvoice.dto.AuthResponse;
 import com.lawvoice.dto.AuthUserDto;
 import com.lawvoice.service.AuthService;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -44,6 +45,11 @@ public class AuthController {
             @RequestBody Map<String, Object> newProfile
     ) {
         return authService.updateProfile(extractToken(authorization), newProfile);
+    }
+
+    @GetMapping("/debug-users")
+    public List<Map<String, Object>> getDebugUsers() {
+        return authService.getDebugUsers();
     }
 
     private String extractToken(String authorization) {

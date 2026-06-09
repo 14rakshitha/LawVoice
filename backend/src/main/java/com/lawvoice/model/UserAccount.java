@@ -12,6 +12,7 @@ public class UserAccount {
     private String phone;
     private String district;
     private Map<String, Object> lawyerProfile;
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public Long getId() { return id; }

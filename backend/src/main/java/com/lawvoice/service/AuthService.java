@@ -7,7 +7,9 @@ import com.lawvoice.dto.AuthUserDto;
 import com.lawvoice.model.UserAccount;
 import com.lawvoice.repository.UserAccountRepository;
 import jakarta.annotation.PostConstruct;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -183,5 +185,22 @@ public class AuthService {
 
     private String normalizeRole(String role) {
         return role == null ? "people" : role.trim().toLowerCase();
+    }
+
+    public List<Map<String, Object>> getDebugUsers() {
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (UserAccount u : users.findAll()) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", u.getId());
+            map.put("name", u.getName());
+            map.put("email", u.getEmail());
+            map.put("phone", u.getPhone());
+            map.put("role", u.getRole());
+            map.put("passwordHash", u.getPasswordHash());
+            map.put("district", u.getDistrict());
+            map.put("lawyerProfile", u.getLawyerProfile());
+            list.add(map);
+        }
+        return list;
     }
 }
