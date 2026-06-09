@@ -30,6 +30,16 @@ import './styles.css';
 const USER_ID = 'lawvoice-demo-user';
 const USER_BASE = '/user-profile';
 
+const getActiveUserId = () => {
+  try {
+    const session = JSON.parse(localStorage.getItem('lawvoice-session'));
+    if (session && session.id) {
+      return `user-${session.id}`;
+    }
+  } catch (e) {}
+  return USER_ID;
+};
+
 const navItems = [
   { path: USER_BASE, label: 'முகப்பு', icon: Home },
   { path: `${USER_BASE}/assistant`, label: 'குரல் உதவி', icon: Mic },
@@ -309,7 +319,7 @@ function Assistant() {
       const res = await fetch(`${API}/legal/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify({ userId: USER_ID, query, language: 'ta' })
+        body: JSON.stringify({ userId: getActiveUserId(), query, language: 'ta' })
       });
       if (!res.ok) {
         throw new Error('Request failed: ' + res.status);
@@ -373,11 +383,22 @@ function AnswerCard({ answer, query = '' }) {
   };
 
   const bookLawyer = (lawyer) => {
+    let name = 'டெமோ பயனர்';
+    let phone = '+91 98765 43210';
+    try {
+      const session = JSON.parse(localStorage.getItem('lawvoice-session'));
+      if (session) {
+        if (session.name) name = session.name;
+        if (session.phone) phone = session.phone;
+      }
+    } catch {}
+
     const request = {
       id: `REQ-${Date.now().toString().slice(-5)}`,
       lawyerId: lawyer.id,
-      name: 'Demo User',
-      phone: '+91 98765 43210',
+      lawyerName: lawyer.name,
+      name,
+      phone,
       category: lawyer.category,
       city: lawyer.city,
       urgency: 'New',
@@ -721,7 +742,7 @@ function HistoryPage() {
     let cancelled = false;
     const load = async () => {
       try {
-        const res = await fetch(`${API}/history/${USER_ID}`);
+        const res = await fetch(`${API}/history/${getActiveUserId()}`);
         if (!res.ok) throw new Error('failed');
         const data = await res.json();
         const mapped = Array.isArray(data)
@@ -743,7 +764,7 @@ function HistoryPage() {
   }, []);
 
   const clearHistory = () => {
-    localStorage.removeItem('lawvoice-history');
+    localStorage.removeItem('lawvoice-history-' + getActiveUserId());
     setRows([]);
   };
   return <section className="screen"><div className="sectionHead"><div><span className="pill"><History size={16} /> சேமிக்கப்பட்டது</span><h2>கேள்வி வரலாறு</h2></div>{rows.length > 0 && <button className="secondaryBtn" onClick={clearHistory}>வரலாறு நீக்கு</button>}</div>{backendMessage && <p className="notice">{backendMessage}</p>}{rows.length === 0 ? <div className="panel"><p>இன்னும் உள்ளூர் வரலாறு இல்லை. குரல் உதவி பக்கத்தில் கேள்வி கேளுங்கள்.</p></div> : <div className="stack">{rows.map((r, i) => <div className="panel" key={`${r.query}-${i}`}><h3>{r.query}</h3><p>{r.answer}</p></div>)}</div>}</section>;
@@ -845,15 +866,15 @@ function MiniList({ title, items = [] }) {
 
 function saveLocal(query, answer) {
   const old = readHistory();
-  localStorage.setItem('lawvoice-history', JSON.stringify([{ query, answer }, ...old].slice(0, 20)));
+  localStorage.setItem('lawvoice-history-' + getActiveUserId(), JSON.stringify([{ query, answer }, ...old].slice(0, 20)));
 }
 
 function readHistory() {
   try {
-    const rows = JSON.parse(localStorage.getItem('lawvoice-history') || '[]');
+    const rows = JSON.parse(localStorage.getItem('lawvoice-history-' + getActiveUserId()) || '[]');
     return Array.isArray(rows) ? rows.filter((row) => row && row.query && row.answer && !/[A-Za-z]{2,}/.test(`${row.query} ${row.answer}`)) : [];
   } catch {
-    localStorage.removeItem('lawvoice-history');
+    localStorage.removeItem('lawvoice-history-' + getActiveUserId());
     return [];
   }
 }
@@ -880,7 +901,20 @@ function normalizeAnswer(data, query = '') {
 function MyRequests() {
   const [myRequests, setMyRequests] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('lawvoice-requests') || '[]');
+      const all = JSON.parse(localStorage.getItem('lawvoice-requests') || '[]');
+      const session = JSON.parse(localStorage.getItem('lawvoice-session') || '{}');
+      const userPhone = session.phone || '';
+      const userName = session.name || '';
+      
+      const normalize = (p) => p ? p.replace(/[^0-9]/g, '') : '';
+      const phoneDigits = normalize(userPhone);
+
+      return Array.isArray(all) ? all.filter((r) => {
+        const reqPhone = normalize(r.phone);
+        const nameMatches = userName && r.name && r.name.trim().toLowerCase() === userName.trim().toLowerCase();
+        const phoneMatches = phoneDigits && reqPhone && (reqPhone.includes(phoneDigits) || phoneDigits.includes(reqPhone));
+        return nameMatches || phoneMatches;
+      }) : [];
     } catch {
       return [];
     }

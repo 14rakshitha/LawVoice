@@ -84,12 +84,29 @@ const LawyerProfile = () => {
 
   const filteredRequests = useMemo(() => {
     const term = query.trim().toLowerCase();
-    return requests.filter((request) => {
+    const activeLawyerName = lawyer.name || '';
+    
+    const lawyerRequests = requests.filter((request) => {
+      const requestLawyerName = request.lawyerName || '';
+      if (requestLawyerName.trim().toLowerCase() === activeLawyerName.trim().toLowerCase()) {
+        return true;
+      }
+      
+      // Fallback mappings using demo IDs
+      if (request.lawyerId === 'priya' && activeLawyerName.includes('ப்ரியா')) return true;
+      if (request.lawyerId === 'meena' && activeLawyerName.includes('மீனா')) return true;
+      if (request.lawyerId === 'prakash' && activeLawyerName.includes('பிரகாஷ்')) return true;
+      if (request.lawyerId === 'latha' && activeLawyerName.includes('லதா')) return true;
+      
+      return false;
+    });
+
+    return lawyerRequests.filter((request) => {
       const matchesCategory = categoryFilter === 'All' || request.category === categoryFilter;
       const matchesSearch = !term || `${request.name} ${request.issue} ${request.city} ${request.status}`.toLowerCase().includes(term);
       return matchesCategory && matchesSearch;
     });
-  }, [categoryFilter, query, requests]);
+  }, [categoryFilter, query, requests, lawyer.name]);
 
   const updateLawyer = (field, value) => {
     setLawyer((current) => ({ ...current, [field]: value }));
