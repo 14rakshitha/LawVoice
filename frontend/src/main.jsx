@@ -403,30 +403,6 @@ function AnswerCard({ answer, query = '' }) {
       <MiniList title="படிகள்" items={answer.steps} />
       <MiniList title="உரிமைகள்" items={answer.rights} />
       <MiniList title="அடுத்த உதவி" items={answer.nextActions} />
-      {answer.suggestedLawyers?.length > 0 && (
-        <div className="advocateSuggestions">
-          <div className="sectionHead">
-            <div>
-              <span className="pill"><MapPin size={16} /> வழக்கறிஞர் உதவி</span>
-              <h3>இந்த கேள்விக்குப் பொருத்தமான வழக்கறிஞர்கள்</h3>
-            </div>
-            <Link className="secondaryBtn" to={`${USER_BASE}/lawyers`}>முழு பட்டியல்</Link>
-          </div>
-          <div className="suggestionGrid">
-            {answer.suggestedLawyers.map((lawyer) => (
-              <div className="suggestionCard" key={`${lawyer.id}-${lawyer.name}`}>
-                <strong>{lawyer.name}</strong>
-                <span>{lawyer.category} | {lawyer.city} | மதிப்பீடு {lawyer.rating}</span>
-                <div className="toolbar">
-                  <button className="primaryBtn" onClick={() => bookLawyer(lawyer)}>கோரிக்கை அனுப்பு</button>
-                  <a className="secondaryBtn" href={`tel:${lawyer.phone}`}><Phone size={16} /> அழை</a>
-                </div>
-              </div>
-            ))}
-          </div>
-          {bookingMessage && <p className="notice">{bookingMessage}</p>}
-        </div>
-      )}
       <small>{answer.disclaimer}</small>
     </div>
   );

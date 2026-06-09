@@ -125,6 +125,31 @@ public class AuthService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "பயனர் கிடைக்கவில்லை."));
     }
 
+    public AuthUserDto updateProfile(String token, Map<String, Object> newProfile) {
+        Long userId = sessions.get(token);
+        if (userId == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "அமர்வு காலாவதியானது. மீண்டும் உள்நுழையவும்.");
+        }
+        UserAccount account = users.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "பயனர் கிடைக்கவில்லை."));
+        
+        if (newProfile.containsKey("name")) {
+            account.setName(String.valueOf(newProfile.get("name")).trim());
+        }
+        if (newProfile.containsKey("phone")) {
+            account.setPhone(String.valueOf(newProfile.get("phone")).trim());
+        }
+        if (newProfile.containsKey("district")) {
+            account.setDistrict(String.valueOf(newProfile.get("district")).trim());
+        }
+        
+        if ("lawyer".equals(account.getRole())) {
+            account.setLawyerProfile(newProfile);
+        }
+        users.save(account);
+        return toDto(account);
+    }
+
     private AuthResponse buildResponse(UserAccount account, String message) {
         String token = UUID.randomUUID().toString();
         sessions.put(token, account.getId());

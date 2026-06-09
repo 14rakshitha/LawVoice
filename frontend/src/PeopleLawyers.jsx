@@ -6,7 +6,7 @@ import './styles.css';
 
 const PeopleLawyers = () => {
   const [locationMessage, setLocationMessage] = useState('');
-  const [expanded, setExpanded] = useState('saved-lawyer');
+  const [expanded, setExpanded] = useState('');
   const [requestMessage, setRequestMessage] = useState('');
   const [requestForm, setRequestForm] = useState(() => {
     try {
@@ -44,20 +44,6 @@ const PeopleLawyers = () => {
   }, []);
  
   const lawyers = [
-    {
-      id: 'saved-lawyer',
-      name: savedLawyer.name,
-      category: savedLawyer.category,
-      city: savedLawyer.city,
-      phone: savedLawyer.phone,
-      rating: '4.9',
-      experience: savedLawyer.experience,
-      barId: savedLawyer.barId,
-      availability: savedLawyer.availability,
-      short: savedLawyer.bio,
-      bio: savedLawyer.bio,
-      pastCases: savedLawyer.caseHistory || []
-    },
     ...(backendLawyers.length
       ? backendLawyers.map((lawyer) => ({
         id: lawyer.id,
@@ -71,9 +57,9 @@ const PeopleLawyers = () => {
         availability: 'அழைப்பிற்கு கிடைக்கும்',
         short: lawyer.bio ? (lawyer.bio.length > 50 ? lawyer.bio.substring(0, 50) + '...' : lawyer.bio) : 'இந்த வகை வழக்குகளுக்கு நடைமுறை வழிகாட்டல்.',
         bio: lawyer.bio || 'உங்கள் வழக்கின் ஆவணங்கள் மற்றும் உண்மை விவரங்களை வைத்து, சரியான அடுத்த படிகளை திட்டமிட்டு வழிகாட்ட முடியும்.',
-        pastCases: []
+        pastCases: lawyer.caseHistory || []
       }))
-      : demoLawyers.filter((lawyer) => lawyer.name !== savedLawyer.name))
+      : demoLawyers)
   ].filter((lawyer, index, all) => all.findIndex((item) => item.id === lawyer.id || item.name === lawyer.name) === index);
 
   const searchLocation = () => {

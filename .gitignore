@@ -1,8 +1,9 @@
 backend/.tools/
-frontend/node_modules/
+**/node_modules/
 frontend/dist/
 .env
 *.log
+
 
 # Build outputs and dependencies
 backend/target/

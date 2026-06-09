@@ -159,7 +159,32 @@ export function readStoredRequests() {
 
 export function readStoredLawyerProfile() {
   try {
-    return { ...defaultLawyerProfile, ...JSON.parse(localStorage.getItem('lawvoice-lawyer-profile') || '{}') };
+    const session = JSON.parse(localStorage.getItem('lawvoice-session') || '{}');
+    const localProfile = JSON.parse(localStorage.getItem('lawvoice-lawyer-profile') || '{}');
+    if (session.role === 'lawyer') {
+      return {
+        name: session.name || '',
+        email: session.email || '',
+        phone: session.phone || '',
+        district: session.district || '',
+        city: localProfile.city || '',
+        barId: localProfile.barId || '',
+        category: localProfile.category || '',
+        experience: localProfile.experience || '',
+        office: localProfile.office || '',
+        state: localProfile.state || 'தமிழ் நாடு',
+        languages: localProfile.languages || '',
+        consultationMode: localProfile.consultationMode || '',
+        availability: localProfile.availability || '',
+        bio: localProfile.bio || '',
+        education: localProfile.education || '',
+        courtPractice: localProfile.courtPractice || '',
+        consultationFee: localProfile.consultationFee || '',
+        caseHistory: localProfile.caseHistory || [],
+        ...localProfile
+      };
+    }
+    return defaultLawyerProfile;
   } catch {
     localStorage.removeItem('lawvoice-lawyer-profile');
     return defaultLawyerProfile;

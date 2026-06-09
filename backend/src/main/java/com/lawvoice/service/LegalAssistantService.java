@@ -458,6 +458,20 @@ public class LegalAssistantService {
                     String exp = profile != null ? String.valueOf(profile.getOrDefault("experience", "9 ஆண்டுகள்")) : "9 ஆண்டுகள்";
                     String bio = profile != null ? String.valueOf(profile.getOrDefault("bio", "உங்கள் வழக்கின் ஆவணங்கள் மற்றும் உண்மை விவரங்களை வைத்து, சரியான அடுத்த படிகளை திட்டமிட்டு வழிகாட்ட முடியும்.")) : "உங்கள் வழக்கின் ஆவணங்கள் மற்றும் உண்மை விவரங்களை வைத்து, சரியான அடுத்த படிகளை திட்டமிட்டு வழிகாட்ட முடியும்.";
                     
+                    List<String> caseHistory = new ArrayList<>();
+                    if (profile != null && profile.get("caseHistory") instanceof List) {
+                        try {
+                            List<?> rawList = (List<?>) profile.get("caseHistory");
+                            for (Object obj : rawList) {
+                                if (obj != null) {
+                                    caseHistory.add(String.valueOf(obj));
+                                }
+                            }
+                        } catch (Exception e) {
+                            // ignore
+                        }
+                    }
+
                     list.add(new LawyerItem(
                             "u" + u.getId(),
                             u.getName(),
@@ -468,7 +482,8 @@ public class LegalAssistantService {
                             true,
                             exp,
                             barId,
-                            bio
+                            bio,
+                            caseHistory
                     ));
                 }
             }

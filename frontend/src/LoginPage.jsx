@@ -28,11 +28,11 @@ const LoginPage = () => {
     password: '',
     phone: '',
     identifier: '',
-    district: 'சென்னை',
-    barId: defaultLawyerProfile.barId,
-    category: defaultLawyerProfile.category,
-    city: defaultLawyerProfile.city,
-    experience: defaultLawyerProfile.experience
+    district: '',
+    barId: '',
+    category: practiceAreas[0],
+    city: '',
+    experience: ''
   });
 
   // Detect if the login identifier is a phone number (digits only) or a name
@@ -50,15 +50,24 @@ const LoginPage = () => {
     if (authResponse.user.role === 'lawyer') {
       const profile = authResponse.user.lawyerProfile || {};
       localStorage.setItem('lawvoice-lawyer-profile', JSON.stringify({
-        ...defaultLawyerProfile,
         name: authResponse.user.name,
         email: authResponse.user.email,
         phone: authResponse.user.phone,
         district: authResponse.user.district,
-        city: profile.city || defaultLawyerProfile.city,
-        barId: profile.barId || defaultLawyerProfile.barId,
-        category: profile.category || defaultLawyerProfile.category,
-        experience: profile.experience || defaultLawyerProfile.experience
+        city: profile.city || '',
+        barId: profile.barId || '',
+        category: profile.category || '',
+        experience: profile.experience || '',
+        office: profile.office || '',
+        state: profile.state || 'தமிழ் நாடு',
+        languages: profile.languages || '',
+        consultationMode: profile.consultationMode || '',
+        availability: profile.availability || '',
+        bio: profile.bio || '',
+        education: profile.education || '',
+        courtPractice: profile.courtPractice || '',
+        consultationFee: profile.consultationFee || '',
+        caseHistory: profile.caseHistory || []
       }));
       navigate('/lawyer-profile');
       return;
@@ -129,7 +138,7 @@ const LoginPage = () => {
           </div>
         </div>
 
-        <form className="rolePanel authPanel" onSubmit={handleSubmit}>
+        <form className="rolePanel authPanel" onSubmit={handleSubmit} autoComplete="off">
           <div className="roleSwitch" aria-label="பயனர் வகை">
             <button type="button" className={role === 'people' ? 'active' : ''} onClick={() => switchRole('people')}>
               <UserRound size={18} /> மக்கள்

@@ -37,6 +37,7 @@ export async function authLogin(payload) {
 
 export function saveSession(authResponse) {
   localStorage.setItem('lawvoice-session', JSON.stringify({
+    id: authResponse.user.id,
     token: authResponse.token,
     role: authResponse.user.role,
     email: authResponse.user.email,
@@ -46,4 +47,22 @@ export function saveSession(authResponse) {
     lawyerProfile: authResponse.user.lawyerProfile,
     loggedInAt: new Date().toISOString()
   }));
+}
+
+export async function updateLawyerProfile(payload) {
+  const session = JSON.parse(localStorage.getItem('lawvoice-session') || '{}');
+  const token = session.token;
+  const res = await fetch(`${API}/auth/profile`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(payload)
+  });
+  const data = await parseJson(res);
+  if (!res.ok) {
+    throw new Error(data.message || data.error || 'சுயவிவரத்தை புதுப்பிக்க முடியவில்லை.');
+  }
+  return data;
 }
